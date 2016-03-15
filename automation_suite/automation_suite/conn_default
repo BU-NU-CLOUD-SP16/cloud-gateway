@@ -1,0 +1,28 @@
+config setup
+    # Note: incorrect SElinux policies might prevent pluto writing the core
+    dumpdir=/var/run/pluto/
+
+    # NAT-TRAVERSAL support, see README.NAT-Traversal
+    nat_traversal=yes
+
+    # put all possible subnet here: %v(4/6)CIDR
+    virtual_private=%v4:10.0.0.0/8, %v4:172.31.0.0/16, %v4:192.168.0.0/16
+
+    # which IPsec stack to use. auto will try netkey, then klips then mast
+    protostack=netkey
+
+conn connection_name
+     authby=secret
+     auto=start
+     type=tunnel
+
+    # Left security gateway, subnet behind it, nexthop toward right.
+    # leftid=name_of_machine, can_be_your_public_id
+    left=LEFT_IP
+    leftsubnet=LEFT_SUBNET_IP
+    # leftnexthop=<ignore>
+
+    # Right security gateway, subnet behind it, nexthop toward left.
+    right=RIGHT_IP
+    rightsubnet=RIGHT_SUBNET_IP
+    # rightnexthop=<ignore>
