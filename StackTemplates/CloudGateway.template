@@ -35,7 +35,12 @@
       "Default" : "10.0.1.0/24"
     },
 
-    "VcgPublicIP" : {
+    "VcgID" : {
+      "Type" : "String",
+      "Default" : "remote vcg"
+    },
+
+    "VcgPrivateIP" : {
       "Type" : "String",
       "Default" : "10.0.0.100"
     },
@@ -107,12 +112,6 @@
        }
     },     
 
-    "MyEIP" : {
-      "Type" : "AWS::EC2::EIP",
-      "DependsOn": ["VPC"],
-      "Properties" : {}
-    },
-
     "Vcg": {
       "Type": "AWS::EC2::Instance",
       "DependsOn": ["MyEIP", "PublicSubnet", "SecurityGroup"],
@@ -145,18 +144,18 @@
                                                     "right=", { "Ref" : "hqIp" }, "\n",
                                                     "rightsubnet=0.0.0.0/0", "\n",
                                                     "leftid=",
-                                                      { "Fn::GetAtt" : [ "MyEIP" , "AllocationId" ] }, "\n",
+                                                      { "Ref" : "VcgID"}, "\n",
                                                     "left=",
-                                                      { "Ref" : "VcgPublicIP" }, "\n",
+                                                      { "Ref" : "VcgPrivateIP" }, "\n",
                                                     "leftsubnet=",
-                                                      { "Ref" : "PrivateSubnet" }]]},                
+                                                      { "Ref" : "PrivateSubnetCidr" }, "\n"]]},                
                 "mode"  : "000777",
                 "owner" : "root",
                 "group" : "root"
               },
 
               "/etc/ipsec.secrets" : {
-                "content" : { "Fn::Join" : [ "", [{"Fn::GetAtt": [ "MyEIP" , "AllocationId" ]}, " ",
+                "content" : { "Fn::Join" : [ "", [{"Ref" : "VcgID"}, " ",
                                                   {"Ref" : "hqIp"}, ":", " ",
                                                   "\"", {"Ref" : "hqPsk"}, "\"" ]]},
                 "mode"  : "000777",
@@ -189,7 +188,7 @@
 
         "NetworkInterfaces" : [{
           "GroupSet"                 : [{ "Ref" : "SecurityGroup" }],
-          "PrivateIpAddress"         : {"Ref" : "VcgPublicIP"},
+          "PrivateIpAddress"         : {"Ref" : "VcgPrivateIP"},
           "AssociatePublicIpAddress" : "true",
           "DeviceIndex"              : "0",
           "DeleteOnTermination"      : "true",
@@ -222,16 +221,6 @@
             "         --resource Vcg ",
             "         --region ", { "Ref" : "AWS::Region" }, "\n"
          ]]}}
-      }
-    },
-
-    "EIPAssoc" : {
-      "Type" : "AWS::EC2::EIPAssociation",
-      "DependsOn": ["MyEIP", "Vcg"],
-
-      "Properties" : {
-        "InstanceId" : { "Ref" : "Vcg" },
-        "EIP" : {"Ref" : "MyEIP"}
       }
     },
 
@@ -309,14 +298,18 @@
   },
 
   "Outputs" : {
-    "MyInstancePublicIP" : {
-      "Description" : "Public IP address of the newly created EC2 instance",
+    "This VCG ID" : {
+      "Description" : "The id used for this vcg",
       "Value" : { "Fn::GetAtt" : [ "MyEIP", "AllocationId" ] }
     },
     "Region" : {
       "Description" : "Region where resources are provisioned",
       "Value" : { "Ref" : "AWS::Region" }
-    }
+    },
+    "Vcg PublicIP" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
+    },
   }
 }
 
