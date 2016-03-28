@@ -16,7 +16,7 @@ conn %s-%s
     right=%s
     rightsubnet=%s
 """
-secret_template = "%s %s : PSK %s\n"
+secret_template = "%s %s: PSK %s\n"
 
 def add_connection(left_id,left,left_subnet,
                     right_id,right,right_subnet,psk):
@@ -39,12 +39,12 @@ def add_connection(left_id,left,left_subnet,
 
 def deploy_vcg(vpc_cidr, public_subnet, private_subnet, vcg_id, vcg_ip):
     config = yaml.load('config.yaml')
-    Psk = uuid.uuid4().hex
+    psk = uuid.uuid4().hex
 
     template = open("./StackTemplate/aws.template").read()
     template = (template) % ( config['KeyPair'], 
                             vpc_cidr, public_subnet, private_subnet,
-                            vcg_id,  vcg_ip, config['HqPublicIp'], Psk,
+                            vcg_id,  vcg_ip, config['HqPublicIp'], psk,
                             config['InstanceType'], config['ImageId']) 
 
     # initialize client
@@ -52,7 +52,7 @@ def deploy_vcg(vpc_cidr, public_subnet, private_subnet, vcg_id, vcg_ip):
     response = client.create_stack( StackName = 'cloudgateway', TemplateBody = template)
     print "Creating stack, stack id:", response
 
-    # monitor stack creating process
+    # wait until create progress ends or interrupted
     while True:
         response = client.describe_stacks(StackName = "cloudgateway")
         status = response['Stacks'][0]['StackStatus']  
@@ -61,11 +61,14 @@ def deploy_vcg(vpc_cidr, public_subnet, private_subnet, vcg_id, vcg_ip):
            break
         time.sleep(5)
 
+    # check stack create status, if success, add ipsec connecion
     response = client.describe_stacks(StackName = "cloudgateway")
-    status = response['Stacks'][0]['StackStatus']  
-    if status == "CREATE_COMPLETE":
-        vcg_public_ip = response['Stacks'][0]["Outputs"]
-        add_connection(vcg_id, vcg_ip, Psk)
+    if response['Stacks'][0]['StackStatus'] == "CREATE_COMPLETE":
+        vcg_public_ip = response['Stacks'][0]["Outputs"][0]['VcgPublicIp']
+        add_connection(config['HqPublicIp'], config['HqPrivateIp'], "0.0.0.0/0",
+                       vcg_id, vcg_public_ip, private_subnet, psk)
+        return vcg_public_ip
     else:
         reason = response['Stacks'][0]['StackStatusReason']  
         print "Stack Create Fail, reason:", reason
+        return false

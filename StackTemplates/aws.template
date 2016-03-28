@@ -121,33 +121,33 @@
             "files" : {
               "/etc/ipsec.conf" : {
                 "content" : { "Fn::Join" : [ "", ["config setup", "\n",
-                                                  "conn %default", "\n",
-                                                    "ikelifetime=60m", "\n",
-                                                    "keylife=20m", "\n",
-                                                    "rekeymargin=3m", "\n",
-                                                    "keyingtries=1", "\n",
-                                                    "authby=secret", "\n",
-                                                    "keyexchange=ikev2", "\n",
-                                                    "mobike=no", "\n",
+                                                  " conn %default", "\n",
+                                                  " ikelifetime=60m", "\n",
+                                                  " keylife=20m", "\n",
+                                                  " rekeymargin=3m", "\n",
+                                                  " keyingtries=1", "\n",
+                                                  " authby=secret", "\n",
+                                                  " keyexchange=ikev2", "\n",
+                                                  " mobike=no", "\n",
 
                                                   "conn pass", "\n",
-                                                    "rightsubnet=",
-                                                      { "Ref" : "PrivateSubnet" }, { "Ref" : "hqIp" }, "/32", "\n",
-                                                    "type=passthrough", "\n",
-                                                    "authby=never", "\n",
-                                                    "auto=route", "\n",
+                                                  " rightsubnet=",
+                                                    { "Ref" : "PrivateSubnet" }, { "Ref" : "hqIp" }, "/32", "\n",
+                                                  " type=passthrough", "\n",
+                                                  " authby=never", "\n",
+                                                  " auto=route", "\n",
 
                                                   "conn to-headquarter", "\n",
-                                                    "auto=start", "\n",
-                                                    "rightid=", { "Ref" : "hqIp" }, "\n",
-                                                    "right=", { "Ref" : "hqIp" }, "\n",
-                                                    "rightsubnet=0.0.0.0/0", "\n",
-                                                    "leftid=",
-                                                      { "Ref" : "VcgID"}, "\n",
-                                                    "left=",
-                                                      { "Ref" : "VcgPrivateIP" }, "\n",
-                                                    "leftsubnet=",
-                                                      { "Ref" : "PrivateSubnetCidr" }, "\n"]]},                
+                                                  " auto=start", "\n",
+                                                  " rightid=", { "Ref" : "hqIp" }, "\n",
+                                                  " right=", { "Ref" : "hqIp" }, "\n",
+                                                  " rightsubnet=0.0.0.0/0", "\n",
+                                                  " leftid=",
+                                                    { "Ref" : "VcgID"}, "\n",
+                                                  " left=",
+                                                    { "Ref" : "VcgPrivateIP" }, "\n",
+                                                  " leftsubnet=",
+                                                    { "Ref" : "PrivateSubnetCidr" }, "\n"]]},                
                 "mode"  : "000777",
                 "owner" : "root",
                 "group" : "root"
@@ -155,8 +155,8 @@
 
               "/etc/ipsec.secrets" : {
                 "content" : { "Fn::Join" : [ "", [{"Ref" : "VcgID"}, " ",
-                                                  {"Ref" : "hqIp"}, ":", " ",
-                                                  "\"", {"Ref" : "hqPsk"}, "\"" ]]},
+                                                  {"Ref" : "hqIp"}, ":", " PSK ",
+                                                  {"Ref" : "hqPsk"}, "\n"]]},
                 "mode"  : "000777",
                 "owner" : "root",
                 "group" : "root"
@@ -297,10 +297,6 @@
   },
 
   "Outputs" : {
-    "Region" : {
-      "Description" : "Region where resources are provisioned",
-      "Value" : { "Ref" : "AWS::Region" }
-    },
     "VcgPublicIP" : {
       "Description" : "Public IP address of the newly created EC2 instance",
       "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
