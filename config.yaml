@@ -1,0 +1,5 @@
+KeyPair: "Oregon" 
+HqPublicIp : "52.24.165.119" 
+HqPrivateIp : "10.1.0.73" 
+InstanceType : "t2.micro"
+ImageId : "ami-9abea4fb"

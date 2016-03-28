@@ -4,58 +4,57 @@
   "Parameters" : {
     "KeyPair": {
       "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
-      "Default" : "Oregon",
+      "Default" : "%s",
       "Type": "String"
-    },
-
-    "InstanceType" : {
-      "Type" : "String",
-      "Default" : "t2.micro",
-      "Description" : "EC2 instance type, e.g. m1.small, m1.large, etc."
-    },
-
-    "ImageId" : {
-      "Type" : "String",
-      "Default" : "ami-9abea4fb",
-      "Description" : "we use Ubuntu Server 14.04 LTS (HVM), SSD Volume Type "
     },
 
     "VpcCidr" : {
       "Type" : "String",
-      "Default" : "10.0.0.0/16"
+      "Default" : "%s"
     },
 
     "PublicSubnetCidr" : {
       "Type" : "String",
-      "Default" : "10.0.0.0/24"
+      "Default" : "%s"
     },
 
     "PrivateSubnetCidr" : {
       "Type" : "String",
-      "Default" : "10.0.1.0/24"
+      "Default" : "%s"
     },
 
     "VcgID" : {
       "Type" : "String",
-      "Default" : "remote vcg"
+      "Default" : "%s"
     },
 
     "VcgPrivateIP" : {
       "Type" : "String",
-      "Default" : "10.0.0.100"
+      "Default" : "%s"
     },
 
     "hqIp" : {
       "Type" : "String",
-      "Default" : "?????",
+      "Default" : "%s",
       "Description" : "public IP of head quarter"
 
     },
 
     "hqPsk" : {
       "Type" : "String",
-      "Default" : "secret1",
+      "Default" : "%s",
       "Description" : "PSK between this cloud and head quarter"   
+    },
+    "InstanceType" : {
+      "Type" : "String",
+      "Default" : "%s",
+      "Description" : "EC2 instance type, e.g. m1.small, m1.large, etc."
+    },
+
+    "ImageId" : {
+      "Type" : "String",
+      "Default" : "%s",
+      "Description" : "we use Ubuntu Server 14.04 LTS (HVM), SSD Volume Type "
     }
   },
 
