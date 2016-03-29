@@ -52,8 +52,8 @@ def deploy_vcg(vpc_cidr, public_subnet, private_subnet, vcg_id, vcg_ip):
 
     # initialize client
     client = boto3.client('cloudformation')
-    response = client.create_stack( StackName = 'cloudgateway', TemplateBody = template)
-    print "Creating stack, stack id:", response['StackId']
+    # response = client.create_stack( StackName = 'cloudgateway', TemplateBody = template)
+    # print "Creating stack, stack id:", response['StackId']
 
     # wait until create progress ends or interrupted
     while True:

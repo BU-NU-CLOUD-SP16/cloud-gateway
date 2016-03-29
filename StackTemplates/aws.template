@@ -121,7 +121,7 @@
             "files" : {
               "/etc/ipsec.conf" : {
                 "content" : { "Fn::Join" : [ "", ["config setup", "\n",
-                                                  " conn %%default", "\n",
+                                                  "conn %%default", "\n",
                                                   " ikelifetime=60m", "\n",
                                                   " keylife=20m", "\n",
                                                   " rekeymargin=3m", "\n",
@@ -132,7 +132,8 @@
 
                                                   "conn pass", "\n",
                                                   " rightsubnet=",
-                                                    { "Ref" : "PrivateSubnet" }, { "Ref" : "hqIp" }, "/32", "\n",
+                                                    { "Ref" : "PrivateSubnetCidr" }, 
+                                                    ",", { "Ref" : "hqIp" }, "/32", "\n",
                                                   " type=passthrough", "\n",
                                                   " authby=never", "\n",
                                                   " auto=route", "\n",
@@ -172,7 +173,8 @@
                 "3": { "command" : "sudo echo net.ipv4.conf.all.accept_redirects = 0 >> /etc/sysctl.conf"},
                 "4": { "command" : "sudo echo net.ipv4.conf.all.send_redirects = 0 >> /etc/sysctl.conf"},
                 "5": { "command" : "sudo echo 1 > /proc/sys/net/ipv4/ip_forward"},
-                "5": { "command" : "sudo sysctl -p"}
+                "5": { "command" : "sudo sysctl -p"},
+                "start ipsec tunnel": {"command" : "sudo ipsec start"}
             }
           }
         }
