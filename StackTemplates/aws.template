@@ -220,7 +220,8 @@
             "/usr/local/bin/cfn-signal -e $? ",
             "         --stack ", { "Ref" : "AWS::StackName" },
             "         --resource Vcg ",
-            "         --region ", { "Ref" : "AWS::Region" }, "\n"
+            "         --region ", { "Ref" : "AWS::Region" }, "\n",
+            "sudo ipsec restart\n"
          ]]}}
       }
     },

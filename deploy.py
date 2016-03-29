@@ -15,7 +15,7 @@ conn %s-%s
  right=%s
  rightsubnet=%s
 """
-secret_template = "%s %s : PSK \\\"%s\\\"\n"
+secret_template = "%s %s : PSK \\\"%s\\\" \\n"
 
 config = yaml.load(open('config.yaml').read())
 
