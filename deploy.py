@@ -29,13 +29,13 @@ def add_connection(left_id,left,left_subnet,
     new_secret = secret_template % (left_id, right_id, psk)
 
     if not os.path.isdir(home_path):
-        os.makedirs(home_path, 0777)
+        os.makedirs(home_path, 0666)
         open(os.path.join(home_path, "ipsec.conf"), "w").close()
         open(os.path.join(home_path, "ipsec.secrets"), "w").close()
 
     with open(os.path.join(home_path, "ipsec.conf"), "a") as conf_file:
         conf_file.write(new_conn)
-
+    
     subprocess.call("echo "+ new_secret + " | sudo tee --append /etc/ipsec.secrets",shell=True)
     subprocess.call("./bin/ipsec_restart",shell=True)
 
