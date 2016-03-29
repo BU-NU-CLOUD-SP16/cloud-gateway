@@ -156,8 +156,8 @@
 
               "/etc/ipsec.secrets" : {
                 "content" : { "Fn::Join" : [ "", [{"Ref" : "VcgID"}, " ",
-                                                  {"Ref" : "hqIp"}, ":", " PSK ",
-                                                  {"Ref" : "hqPsk"}, "\n"]]},
+                                                  {"Ref" : "hqIp"}, " :", " PSK ",
+                                                  "\"", {"Ref" : "hqPsk"}, "\"\n"]]},
                 "mode"  : "000777",
                 "owner" : "root",
                 "group" : "root"
@@ -174,7 +174,7 @@
                 "4": { "command" : "sudo echo net.ipv4.conf.all.send_redirects = 0 >> /etc/sysctl.conf"},
                 "5": { "command" : "sudo echo 1 > /proc/sys/net/ipv4/ip_forward"},
                 "5": { "command" : "sudo sysctl -p"},
-                "start ipsec tunnel": {"command" : "sudo ipsec start"}
+                "start ipsec tunnel": {"command" : "sudo ipsec restart"}
             }
           }
         }

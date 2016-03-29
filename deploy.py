@@ -15,7 +15,7 @@ conn %s-%s
  right=%s
  rightsubnet=%s
 """
-secret_template = "%s %s: PSK %s\n"
+secret_template = "%s %s : PSK \\\"%s\\\"\n"
 
 config = yaml.load(open('config.yaml').read())
 
@@ -35,10 +35,9 @@ def add_connection(left_id,left,left_subnet,
 
     with open(os.path.join(home_path, "ipsec.conf"), "a") as conf_file:
         conf_file.write(new_conn)
-    with open(os.path.join(home_path, "ipsec.secrets"), "a") as secrets_file:
-        secrets_file.write(new_secret) 
 
-    subprocess.call(['./bin/ipsec_restart'])
+    subprocess.call("echo "+ new_secret + " | sudo tee --append /etc/ipsec.secrets",shell=True)
+    subprocess.call("./bin/ipsec_restart",shell=True)
 
 
 def deploy_vcg(vpc_cidr, public_subnet, private_subnet, vcg_id, vcg_ip):
@@ -52,8 +51,8 @@ def deploy_vcg(vpc_cidr, public_subnet, private_subnet, vcg_id, vcg_ip):
 
     # initialize client
     client = boto3.client('cloudformation')
-    # response = client.create_stack( StackName = 'cloudgateway', TemplateBody = template)
-    # print "Creating stack, stack id:", response['StackId']
+    response = client.create_stack( StackName = 'cloudgateway', TemplateBody = template)
+    print "Creating stack, stack id:", response['StackId']
 
     # wait until create progress ends or interrupted
     while True:
@@ -77,4 +76,4 @@ def deploy_vcg(vpc_cidr, public_subnet, private_subnet, vcg_id, vcg_ip):
         return false
 
 if __name__ == "__main__":
-    deploy_vcg("10.0.0.0/16", "10.0.0.0/24", "10.0.1.0/24", "remote_vcg", "10.0.0.100")
+    deploy_vcg("10.1.0.0/16", "10.1.0.0/24", "10.1.1.0/24", "viginia_vcg", "10.1.0.100")
