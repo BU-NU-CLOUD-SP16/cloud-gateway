@@ -54,8 +54,8 @@ def create_stack(stack_name, template, wait = True):
     client = boto3.client('cloudformation')
     try:
         response = client.create_stack(stack_name, template)
-    except exception:
-        pritn exception
+    except Exception as exception:
+        pritn str(exception)
         return
 
     if not wait:
@@ -88,6 +88,13 @@ def describe_stack(stack_name):
     return {"status":response['StackStatus'], "outputs" : outputs }
 
 def delete_stack(stack_name):
+    """
+    Params:
+    stack_name -- {string} the name of stack to delete
+    ----------------------
+    Outpurs:
+    The original response from boto3 API
+    """
     client = boto3.client('cloudformation')
     response = client.delete_stack(StackName = stack_name)
     return response
