@@ -35,7 +35,8 @@ def add_connection(left_id,left,left_subnet,
     with open(os.path.join(home_path, "ipsec.conf"), "a") as conf_file:
         conf_file.write(new_conn)
     
-    subprocess.call("echo "+ new_secret + " | sudo tee --append /etc/ipsec.secrets",shell=True)
+    subprocess.call("echo " + new_secret 
+                    + " | sudo tee --append /etc/ipsec.secrets",shell=True)
     subprocess.call("./bin/ipsec_restart",shell=True)
 
 def create_stack(stack_name, template, wait = True):
@@ -51,9 +52,14 @@ def create_stack(stack_name, template, wait = True):
     Otherwise raise an exception with failure reason
     """
     client = boto3.client('cloudformation')
-    response = client.create_stack(stack_name, template)
+    try:
+        response = client.create_stack(stack_name, template)
+    except exception:
+        pritn exception
+        return
 
-
+    if not wait:
+        return response["StackID"]
 
     while True:
         response = client.describe_stacks(StackName = stack_name)
@@ -62,7 +68,7 @@ def create_stack(stack_name, template, wait = True):
         if status != "CREATE_IN_PROGRESS":
            break
         time.sleep(5)
-    return ???
+    return response["StackID"]
 
 
 def describe_stack(stack_name):
@@ -99,7 +105,9 @@ def deploy_vpc(stack_name = "vpc"):
     """
     # create VPC 
     template = open("./StackTemplates/aws.template").read()
-    template = (template) % (config["VpcCidr"], config["PublicCidr"], config["PrivateCidr"]) 
+    template = (template) % (config["VpcCidr"], 
+                            config["PublicCidr"], 
+                            config["PrivateCidr"]) 
     
     stack =  create_stack(stack_name, template)
     desc = describe_stacks(stack_name)["outputs"]
