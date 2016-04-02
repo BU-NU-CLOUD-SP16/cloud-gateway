@@ -19,7 +19,6 @@ secret_template = "%s %s : PSK \\\"%s\\\" \\\n"
 
 config = yaml.load(open('config.yaml').read())
 
-
 def add_connection(left_id,left,left_subnet,
                     right_id,right,right_subnet,psk):
     home_path = config['IpsecConfigPath']
@@ -39,41 +38,107 @@ def add_connection(left_id,left,left_subnet,
     subprocess.call("echo "+ new_secret + " | sudo tee --append /etc/ipsec.secrets",shell=True)
     subprocess.call("./bin/ipsec_restart",shell=True)
 
-
-def deploy_vcg(vpc_cidr, public_subnet, private_subnet, vcg_id, vcg_ip):
-    psk = uuid.uuid4().hex
-
-    template = open("./StackTemplates/aws.template").read()
-    template = (template) % (config['KeyPair'], 
-                                vpc_cidr, public_subnet, private_subnet,
-                                vcg_id,  vcg_ip, config['HqPublicIp'], psk,
-                                config['InstanceType'], config['ImageId']) 
-
-    # initialize client
+def create_stack(stack_name, template, wait = True):
+    """
+    Params:
+    stack_name -- {string} The name of stack to create
+    template -- {string} The content of template
+    wait -- {boolean} If true, the program will not return until the stack is
+        successfully created.
+    ----------------------
+    Outpurs:
+    StackID if create successfully 
+    Otherwise raise an exception with failure reason
+    """
     client = boto3.client('cloudformation')
-    response = client.create_stack( StackName = 'cloudgateway', TemplateBody = template)
-    print "Creating stack, stack id:", response['StackId']
+    response = client.create_stack(stack_name, template)
 
-    # wait until create progress ends or interrupted
+
+
     while True:
-        response = client.describe_stacks(StackName = "cloudgateway")
+        response = client.describe_stacks(StackName = stack_name)
         status = response['Stacks'][0]['StackStatus']  
         print status
         if status != "CREATE_IN_PROGRESS":
            break
         time.sleep(5)
+    return ???
 
-    # check stack create status, if success, add ipsec connecion
-    response = client.describe_stacks(StackName = "cloudgateway")['Stacks'][0]
-    if response['StackStatus'] == "CREATE_COMPLETE":
-        vcg_public_ip = response["Outputs"][0]['OutputValue']
-        add_connection(config['HqPublicIp'], config['HqPrivateIp'], "0.0.0.0/0",
-                      vcg_id, vcg_public_ip, private_subnet, psk)
-        return vcg_public_ip
-    else:
-        reason = response['StackStatusReason']  
-        print "Stack Create Fail, reason:", reason
-        return false
 
-if __name__ == "__main__":
-    deploy_vcg("10.1.0.0/16", "10.1.0.0/24", "10.1.1.0/24", "viginia_vcg", "10.1.0.100")
+def describe_stack(stack_name):
+    """
+    Params:
+    stack_name -- {string} the name of stack to describe
+    ----------------------
+    Outpurs:
+    A dictionary with a "status" key indicate stack status and "outputs" key
+    mapped to hash that store stack description output value
+    """
+    client = boto3.client('cloudformation')
+    response = client.describe_stacks(StackName = "stack_name")['Stacks'][0]
+    outputs = {}
+    for output in response["Outputs"]:
+        outputs[output["OutputKey"]] = output["OutputValue"]
+    return {"status":response['StackStatus'], "outputs" : outputs }
+
+def delete_stack(stack_name):
+    client = boto3.client('cloudformation')
+    response = client.delete_stack(StackName = stack_name)
+    return response
+
+def deploy_vpc(stack_name = "vpc"):
+    """
+    Params:
+        None
+    ----------------------
+    Outputs:
+    vpc -- {string} ID of ceated VPC
+    public_subnet -- {string} ID of ceated public subnet
+    private_subnet -- {string} ID of ceated private subnet
+    private_route_table -- {string} ID of ceated route table for private subnet
+    """
+    # create VPC 
+    template = open("./StackTemplates/aws.template").read()
+    template = (template) % (config["VpcCidr"], config["PublicCidr"], config["PrivateCidr"]) 
+    
+    stack =  create_stack(stack_name, template)
+    desc = describe_stacks(stack_name)["outputs"]
+
+    return desc["vpc_id"], desc["public_subnet_id"],
+            desc["private_subnet_id"], desc["private_route_table_id"]
+
+def deploy_vcg(vpc_stack="vpc", vcg_ip):
+    """
+    Params:
+    vpc_stack -- {string} The stack name of VPC to where this VCG is added
+    vpc_ip -- {string} The private ip address of VCG
+    ----------------------
+    Outputs:
+    vcg_id -- {string} The id of created vcg
+    """
+    psk = uuid.uuid4().hex
+
+    # create eip
+    template = open("./StackTemplates/eip.template").read()
+    template = (template) % (vpc_id) 
+
+    create_stack("eip", "template")
+
+    desc = describe_stack("eip")["outputs"]
+    eip_ip, eip_id = desc["eip_ip"], desc["eip_id"]
+    
+    # create vcg 
+    vpc_desc = describe_stacks(stack_name)["outputs"]
+    template = open("./StackTemplates/vcg.template").read()
+    template = (template) % (config['KeyPair'], vpc_desc["private_route_table_id"], 
+                             vpc_ip, eip_ip, eip_id, config['HqPublicIp'], 
+                             psk, config['InstanceType'], config['ImageId'])
+
+    create_stack("vcg", template)
+
+    # add connection in this machine and start tunnel
+    add_connection(config["HqPublicIp"], config["HqPublicIp"], "0.0.0.0/0",
+                    eip_ip, eip_ip, config["PrivateCidr"], psk)
+
+    return describe_stack["vcg"]["outputs"]["vcg_id"]
+
