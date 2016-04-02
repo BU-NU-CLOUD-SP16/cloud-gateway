@@ -164,8 +164,8 @@ def deploy_vcg(vcg_ip, vpc_stack = "vpc", stack_name = "vcg"):
     return describe_stack("vcg")["outputs"]["VcgId"]
 
 def test():
-  #  deploy_vpc()
-    #deploy_vcg("10.1.0.100")
+    deploy_vpc()
+    deploy_vcg("10.1.0.100")
     delete_stack("vcg")
     delete_stack("eip")
     delete_stack("vpc")
