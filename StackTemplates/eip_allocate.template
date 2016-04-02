@@ -1,0 +1,33 @@
+{
+  "Description" : "Example CloudFormation Stack",
+
+  "Parameters" : {
+    "VpcId" : {
+      "Type" : "String",
+      "Default" : "%s"
+    }
+  },
+
+
+  "Resources" : {
+    "EIP" : {
+       "Type" : "AWS::EC2::EIP",
+       "Properties" : {
+          "Domain" : "vpc"
+       }
+    }
+  },
+
+  "Outputs" : {
+    "eip_ip" : {
+      "Description" : "the elastic ip for cloud gateway",
+      "Value" : { "Ref" : "EIP" }
+    },
+    "eip_id" : {
+      "Description" : "the elastic ip for cloud gateway",
+      "Value" : { "Fn::GetAtt" : ["EIP", "AllocationId"] }
+    }
+  }
+}
+
+

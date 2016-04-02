@@ -29,7 +29,7 @@ def add_connection(left_id,left,left_subnet,
     new_secret = secret_template % (left_id, right_id, psk)
 
     if not os.path.isdir(home_path):
-        os.makedirs(home_path, 0666)
+        os.makedirs(home_path, 0777)
         open(os.path.join(home_path, "ipsec.conf"), "w").close()
         open(os.path.join(home_path, "ipsec.secrets"), "w").close()
 

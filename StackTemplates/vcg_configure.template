@@ -3,19 +3,9 @@
 
   "Parameters" : {
     "KeyPair": {
-      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Description" : "Name of an existing EC2 KeyPair",
       "Default" : "%s",
       "Type": "String"
-    },
-
-    "VpcCidr" : {
-      "Type" : "String",
-      "Default" : "%s"
-    },
-
-    "PublicSubnetCidr" : {
-      "Type" : "String",
-      "Default" : "%s"
     },
 
     "PrivateSubnetCidr" : {
@@ -23,23 +13,33 @@
       "Default" : "%s"
     },
 
-    "VcgID" : {
+    "PrivateRouteID" : {
       "Type" : "String",
       "Default" : "%s"
     },
 
-    "VcgPrivateIP" : {
+    "PrivateIP" : {
       "Type" : "String",
       "Default" : "%s"
     },
 
-    "hqIp" : {
+    "PublicIP" : {
+      "Type" : "String",
+      "Default" : "%s"
+    },
+
+    "EipID" : {
+      "Type" : "String",
+      "Default" : "%s"
+    },
+
+    "HqIp" : {
       "Type" : "String",
       "Default" : "%s",
       "Description" : "public IP of head quarter"
     },
 
-    "hqPsk" : {
+    "Psk" : {
       "Type" : "String",
       "Default" : "%s",
       "Description" : "PSK between this cloud and head quarter"   
@@ -60,36 +60,6 @@
 
 
   "Resources" : {
-    "VPC" : {
-      "Type" : "AWS::EC2::VPC",
-      "Properties" : {
-        "CidrBlock" : {"Ref" : "VpcCidr"},
-        "EnableDnsSupport" : "true",
-        "EnableDnsHostnames" : "true"
-      }
-    },
-
-
-    "PublicSubnet" : {
-      "Type" : "AWS::EC2::Subnet",
-      "DependsOn": ["VPC"],
-      "Properties" : {
-        "VpcId" : { "Ref" : "VPC" },
-        "CidrBlock" : { "Ref" : "PublicSubnetCidr" }
-      }
-    },  
-
-    "PrivateSubnet" : {
-      "Type" : "AWS::EC2::Subnet",
-      "DependsOn": ["VPC"],
-
-      "Properties" : {
-        "VpcId" : { "Ref" : "VPC" },
-        "CidrBlock" : { "Ref" : "PrivateSubnetCidr" }
-      }
-    },  
-
-
     "SecurityGroup" : {
        "Type" : "AWS::EC2::SecurityGroup",
        "DependsOn": ["VPC"],
@@ -113,7 +83,7 @@
 
     "Vcg": {
       "Type": "AWS::EC2::Instance",
-      "DependsOn": ["PublicSubnet", "SecurityGroup"],
+      "DependsOn": ["SecurityGroup"],
 
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
@@ -133,20 +103,20 @@
                                                   "conn pass", "\n",
                                                   " rightsubnet=",
                                                     { "Ref" : "PrivateSubnetCidr" }, 
-                                                    ",", { "Ref" : "hqIp" }, "/32", "\n",
+                                                    ",", { "Ref" : "HqIp" }, "/32", "\n",
                                                   " type=passthrough", "\n",
                                                   " authby=never", "\n",
                                                   " auto=route", "\n",
 
                                                   "conn to-headquarter", "\n",
                                                   " auto=start", "\n",
-                                                  " rightid=", { "Ref" : "hqIp" }, "\n",
-                                                  " right=", { "Ref" : "hqIp" }, "\n",
+                                                  " rightid=", { "Ref" : "HqIp" }, "\n",
+                                                  " right=", { "Ref" : "HqIp" }, "\n",
                                                   " rightsubnet=0.0.0.0/0", "\n",
                                                   " leftid=",
-                                                    { "Ref" : "VcgID"}, "\n",
+                                                    { "Ref" : "PublicIP"}, "\n",
                                                   " left=",
-                                                    { "Ref" : "VcgPrivateIP" }, "\n",
+                                                    { "Ref" : "PrivateIP" }, "\n",
                                                   " leftsubnet=",
                                                     { "Ref" : "PrivateSubnetCidr" }, "\n"]]},                
                 "mode"  : "000777",
@@ -155,9 +125,9 @@
               },
 
               "/etc/ipsec.secrets" : {
-                "content" : { "Fn::Join" : [ "", [{"Ref" : "VcgID"}, " ",
-                                                  {"Ref" : "hqIp"}, " :", " PSK ",
-                                                  "\"", {"Ref" : "hqPsk"}, "\"\n"]]},
+                "content" : { "Fn::Join" : [ "", [{"Ref" : "PublicIP"}, " ",
+                                                  {"Ref" : "HqIp"}, " :", " PSK ",
+                                                  "\"", {"Ref" : "Psk"}, "\"\n"]]},
                 "mode"  : "000777",
                 "owner" : "root",
                 "group" : "root"
@@ -189,7 +159,7 @@
 
         "NetworkInterfaces" : [{
           "GroupSet"                 : [{ "Ref" : "SecurityGroup" }],
-          "PrivateIpAddress"         : {"Ref" : "VcgPrivateIP"},
+          "PrivateIpAddress"         : {"Ref" : "PrivateIP"},
           "AssociatePublicIpAddress" : "true",
           "DeviceIndex"              : "0",
           "DeleteOnTermination"      : "true",
@@ -226,83 +196,31 @@
       }
     },
 
-    "IGW" : {
-      "Type" : "AWS::EC2::InternetGateway",
-      "DependsOn": ["VPC"],
-      "Properties" : {}
-    },
-
-    "attachIGW" : {
-       "Type" : "AWS::EC2::VPCGatewayAttachment",
-       "DependsOn": ["VPC", "IGW"],
-
-       "Properties" : {
-          "VpcId" : { "Ref" : "VPC" },
-          "InternetGatewayId" : { "Ref" : "IGW" }
+    "AssociateEIP" : {
+       "Type": "AWS::EC2::EIPAssociation",
+       "Properties": {
+          "AllocationId": "EipID",
+          "InstanceId": { "Ref" : "Vcg" }
        }
-    },
-
-
-    "PublicRouteTable" : {
-      "Type" : "AWS::EC2::RouteTable",
-      "DependsOn": ["VPC"],
-      "Properties" : {
-        "VpcId" : {"Ref" : "VPC"}
-      }
-    },
-
-    "igwRoute" : {
-      "Type" : "AWS::EC2::Route",
-      "DependsOn": ["IGW", "attachIGW"],
-      "Properties" : {
-        "RouteTableId" : { "Ref" : "PublicRouteTable" },
-        "DestinationCidrBlock" : "0.0.0.0/0",
-        "GatewayId" : { "Ref" : "IGW" }
-      }
-    },
-
-    "assignPublicRouteTable" : {
-      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
-      "DependsOn": ["igwRoute", "PublicRouteTable"],
-      "Properties" : {
-        "SubnetId" : { "Ref" : "PublicSubnet" },
-        "RouteTableId" : { "Ref" : "PublicRouteTable" }
-      }
-    },
-
-
-    "PrivateRouteTable" : {
-      "Type" : "AWS::EC2::RouteTable",
-      "DependsOn": ["VPC"],
-      "Properties" : {
-        "VpcId" : {"Ref" : "VPC"}
-      }
     },
 
     "vcgRoute" : {
       "Type" : "AWS::EC2::Route",
       "DependsOn": ["Vcg"],
       "Properties" : {
-        "RouteTableId" : { "Ref" : "PrivateRouteTable" },
+        "RouteTableId" : { "Ref" : "PrivateRouteID" },
         "DestinationCidrBlock" : "0.0.0.0/0",
         "InstanceId" : { "Ref" : "Vcg" }
-      }
-    },
-
-    "assignPrivateRouteTable" : {
-      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
-      "DependsOn": ["vcgRoute", "PrivateRouteTable"],
-      "Properties" : {
-        "SubnetId" : { "Ref" : "PrivateSubnet" },
-        "RouteTableId" : { "Ref" : "PrivateRouteTable" }
       }
     }
   },
 
   "Outputs" : {
-    "VcgPublicIP" : {
-      "Description" : "Public IP address of the newly created EC2 instance",
-      "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
+    "security_group_id" : {
+      "Value" : { "Ref" : "SecurityGroup" }
+    },
+    "vcg_id" : {
+      "Value" : { "Ref" : "Vcg" }
     }
   }
 }

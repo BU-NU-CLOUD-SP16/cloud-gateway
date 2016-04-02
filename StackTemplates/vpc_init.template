@@ -1,0 +1,133 @@
+{
+  "Description" : "Example CloudFormation Stack",
+
+  "Parameters" : {
+    "VpcCidr" : {
+      "Type" : "String",
+      "Default" : "%s"
+    },
+
+    "PublicSubnetCidr" : {
+      "Type" : "String",
+      "Default" : "%s"
+    },
+
+    "PrivateSubnetCidr" : {
+      "Type" : "String",
+      "Default" : "%s"
+    }
+  },
+
+
+  "Resources" : {
+    "VPC" : {
+      "Type" : "AWS::EC2::VPC",
+      "Properties" : {
+        "CidrBlock" : {"Ref" : "VpcCidr"},
+        "EnableDnsSupport" : "true",
+        "EnableDnsHostnames" : "true"
+      }
+    },
+
+
+    "PublicSubnet" : {
+      "Type" : "AWS::EC2::Subnet",
+      "DependsOn": ["VPC"],
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "CidrBlock" : { "Ref" : "PublicSubnetCidr" }
+      }
+    },  
+
+    "PrivateSubnet" : {
+      "Type" : "AWS::EC2::Subnet",
+      "DependsOn": ["VPC"],
+
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "CidrBlock" : { "Ref" : "PrivateSubnetCidr" }
+      }
+    },  
+
+    "IGW" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "DependsOn": ["VPC"],
+      "Properties" : {}
+    },
+
+    "attachIGW" : {
+       "Type" : "AWS::EC2::VPCGatewayAttachment",
+       "DependsOn": ["VPC", "IGW"],
+
+       "Properties" : {
+          "VpcId" : { "Ref" : "VPC" },
+          "InternetGatewayId" : { "Ref" : "IGW" }
+       }
+    },
+
+    "PublicRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "DependsOn": ["VPC"],
+      "Properties" : {
+        "VpcId" : {"Ref" : "VPC"}
+      }
+    },
+
+    "igwRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "DependsOn": ["IGW", "attachIGW"],
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PublicRouteTable" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "IGW" }
+      }
+    },
+
+    "assignPublicRouteTable" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "DependsOn": ["igwRoute", "PublicRouteTable"],
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "RouteTableId" : { "Ref" : "PublicRouteTable" }
+      }
+    },
+
+    "PrivateRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "DependsOn": ["VPC"],
+      "Properties" : {
+        "VpcId" : {"Ref" : "VPC"}
+      }
+    },
+
+    "assignPrivateRouteTable" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "DependsOn": ["vcgRoute", "PrivateRouteTable"],
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PrivateSubnet" },
+        "RouteTableId" : { "Ref" : "PrivateRouteTable" }
+      }
+    }
+  },
+
+  "Outputs" : {
+    "vpc_id" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
+    },
+    "public_subnet_id" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
+    },
+    "private_subnet_id" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
+    },
+    "private_route_table_id" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
+    }
+  }
+}
+
+
