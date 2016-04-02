@@ -1,11 +1,11 @@
-KeyPair: "N Viginia" 
+KeyPair: "Oregon" 
 HqPublicIp : "52.26.103.3" 
 HqPrivateIp : "10.0.1.121" 
 
-VpvCidr : "10.1.0.0/16" 
+VpcCidr : "10.1.0.0/16" 
 PublicCidr : "10.1.0.0/24" 
 PrivateCidr : "10.1.1.0/24" 
 
 InstanceType : "t2.micro"
-ImageId : "ami-fce3c696"
-IpsecConfigPath : "/home/ubuntu/ipsec/"
+ImageId : "ami-9abea4fb"
+IpsecConfigPath : "./ipsec/"

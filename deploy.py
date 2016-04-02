@@ -53,9 +53,9 @@ def create_stack(stack_name, template, wait = True):
     """
     client = boto3.client('cloudformation')
     try:
-        response = client.create_stack(stack_name, template)
+        response = client.create_stack(StackName = stack_name, TemplateBody = template)
     except Exception as exception:
-        pritn str(exception)
+        print str(exception)
         return
 
     if not wait:
@@ -68,8 +68,7 @@ def create_stack(stack_name, template, wait = True):
         if status != "CREATE_IN_PROGRESS":
            break
         time.sleep(5)
-    return response["StackID"]
-
+    return response["Stacks"][0]["StackId"]
 
 def describe_stack(stack_name):
     """
@@ -81,7 +80,7 @@ def describe_stack(stack_name):
     mapped to hash that store stack description output value
     """
     client = boto3.client('cloudformation')
-    response = client.describe_stacks(StackName = "stack_name")['Stacks'][0]
+    response = client.describe_stacks(StackName = stack_name)['Stacks'][0]
     outputs = {}
     for output in response["Outputs"]:
         outputs[output["OutputKey"]] = output["OutputValue"]
@@ -111,18 +110,18 @@ def deploy_vpc(stack_name = "vpc"):
     private_route_table -- {string} ID of ceated route table for private subnet
     """
     # create VPC 
-    template = open("./StackTemplates/aws.template").read()
+    template = open("./StackTemplates/vpc.template").read()
     template = (template) % (config["VpcCidr"], 
                             config["PublicCidr"], 
                             config["PrivateCidr"]) 
     
     stack =  create_stack(stack_name, template)
-    desc = describe_stacks(stack_name)["outputs"]
+    desc = describe_stack(stack_name)["outputs"]
 
-    return desc["VpcId"], desc["PublicSubnetId"],
+    return desc["VpcId"], desc["PublicSubnetId"], \
             desc["PrivateSubnetId"], desc["PrivateRouteTableId"]
 
-def deploy_vcg(vpc_stack="vpc", vcg_ip):
+def deploy_vcg(vcg_ip, vpc_stack = "vpc", stack_name = "vcg"):
     """
     Params:
     vpc_stack -- {string} The stack name of VPC to where this VCG is added
@@ -134,31 +133,43 @@ def deploy_vcg(vpc_stack="vpc", vcg_ip):
     psk = uuid.uuid4().hex
 
     # get id informatin from pre-create VPC stack
-    vpc_desc = describe_stacks(vpc_stack)["outputs"]
-
-
+    print "Allocating Elastic IP"
+    vpc_desc = describe_stack(vpc_stack)["outputs"]
+    print vpc_desc["VpcId"]
 
     # create eip
     template = open("./StackTemplates/eip.template").read()
     template = (template) % (vpc_desc["VpcId"]) 
 
-    create_stack("eip", "template")
+    create_stack("eip", template)
 
     desc = describe_stack("eip")["outputs"]
     eip_ip, eip_id = desc["EipIp"], desc["EipId"]
-    
-    # create vcg 
-    vpc_desc = describe_stacks(stack_name)["outputs"]
-    template = open("./StackTemplates/vcg.template").read()
-    template = (template) % (config['KeyPair'], vpc_desc["private_route_table_id"], 
-                             vpc_ip, eip_ip, eip_id, config['HqPublicIp'], 
-                             psk, config['InstanceType'], config['ImageId'])
 
-    create_stack("vcg", template)
-
-    # add connection in this machine and start tunnel
+    # Add connection in this machine and start tunnel
+    # So that when IPsec is start in the remote site will have responde
     add_connection(config["HqPublicIp"], config["HqPublicIp"], "0.0.0.0/0",
                     eip_ip, eip_ip, config["PrivateCidr"], psk)
+    
+    # create vcg 
+    vpc_desc = describe_stack(vpc_stack)["outputs"]
+    template = open("./StackTemplates/vcg.template").read()
+    template = (template) % (config['KeyPair'], vpc_desc["VpcId"], vpc_desc["PublicSubnetId"],
+                            config['PrivateCidr'], vpc_desc["PrivateRouteTableId"], 
+                             vcg_ip, eip_ip, eip_id, config['HqPublicIp'], 
+                             psk, config['InstanceType'], config['ImageId'])
+
+    create_stack(stack_name, template)
 
     return describe_stack("vcg")["outputs"]["vcg_id"]
+
+def test():
+  #  deploy_vpc()
+    deploy_vcg("10.1.0.100")
+    delete_stack("vcg")
+    delete_stack("eip")
+    delete_stack("vpc")
+
+if __name__ == "__main__":
+    test()
 

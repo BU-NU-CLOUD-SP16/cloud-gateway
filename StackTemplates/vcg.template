@@ -210,7 +210,7 @@
     "AssociateEIP" : {
        "Type": "AWS::EC2::EIPAssociation",
        "Properties": {
-          "AllocationId": "EipId",
+          "AllocationId": { "Ref" : "EipId" },
           "InstanceId": { "Ref" : "Vcg" }
        }
     },
