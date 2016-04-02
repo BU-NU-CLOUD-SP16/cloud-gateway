@@ -112,8 +112,8 @@ def deploy_vpc(stack_name = "vpc"):
     stack =  create_stack(stack_name, template)
     desc = describe_stacks(stack_name)["outputs"]
 
-    return desc["vpc_id"], desc["public_subnet_id"],
-            desc["private_subnet_id"], desc["private_route_table_id"]
+    return desc["VpcId"], desc["PublicSubnetId"],
+            desc["PrivateSubnetId"], desc["PrivateRouteTableId"]
 
 def deploy_vcg(vpc_stack="vpc", vcg_ip):
     """
@@ -126,14 +126,19 @@ def deploy_vcg(vpc_stack="vpc", vcg_ip):
     """
     psk = uuid.uuid4().hex
 
+    # get id informatin from pre-create VPC stack
+    vpc_desc = describe_stacks(vpc_stack)["outputs"]
+
+
+
     # create eip
     template = open("./StackTemplates/eip.template").read()
-    template = (template) % (vpc_id) 
+    template = (template) % (vpc_desc["VpcId"]) 
 
     create_stack("eip", "template")
 
     desc = describe_stack("eip")["outputs"]
-    eip_ip, eip_id = desc["eip_ip"], desc["eip_id"]
+    eip_ip, eip_id = desc["EipIp"], desc["EipId"]
     
     # create vcg 
     vpc_desc = describe_stacks(stack_name)["outputs"]
@@ -148,5 +153,5 @@ def deploy_vcg(vpc_stack="vpc", vcg_ip):
     add_connection(config["HqPublicIp"], config["HqPublicIp"], "0.0.0.0/0",
                     eip_ip, eip_ip, config["PrivateCidr"], psk)
 
-    return describe_stack["vcg"]["outputs"]["vcg_id"]
+    return describe_stack("vcg")["outputs"]["vcg_id"]
 
