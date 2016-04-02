@@ -102,7 +102,7 @@
 
     "assignPrivateRouteTable" : {
       "Type" : "AWS::EC2::SubnetRouteTableAssociation",
-      "DependsOn": ["vcgRoute", "PrivateRouteTable"],
+      "DependsOn": ["PrivateRouteTable"],
       "Properties" : {
         "SubnetId" : { "Ref" : "PrivateSubnet" },
         "RouteTableId" : { "Ref" : "PrivateRouteTable" }
@@ -111,19 +111,19 @@
   },
 
   "Outputs" : {
-    "vpc_id" : {
+    "VpcId" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Ref" : "VPC" }
+    },
+    "PublicSubnetId" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Ref" : "P" }
+    },
+    "PrivateSubnetId" : {
       "Description" : "Public IP address of the newly created EC2 instance",
       "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
     },
-    "public_subnet_id" : {
-      "Description" : "Public IP address of the newly created EC2 instance",
-      "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
-    },
-    "private_subnet_id" : {
-      "Description" : "Public IP address of the newly created EC2 instance",
-      "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
-    },
-    "private_route_table_id" : {
+    "PrivateRouteTableId" : {
       "Description" : "Public IP address of the newly created EC2 instance",
       "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
     }
