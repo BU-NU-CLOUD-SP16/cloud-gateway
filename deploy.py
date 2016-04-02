@@ -161,11 +161,11 @@ def deploy_vcg(vcg_ip, vpc_stack = "vpc", stack_name = "vcg"):
 
     create_stack(stack_name, template)
 
-    return describe_stack("vcg")["outputs"]["vcg_id"]
+    return describe_stack("vcg")["outputs"]["VcgId"]
 
 def test():
   #  deploy_vpc()
-    deploy_vcg("10.1.0.100")
+    #deploy_vcg("10.1.0.100")
     delete_stack("vcg")
     delete_stack("eip")
     delete_stack("vpc")
