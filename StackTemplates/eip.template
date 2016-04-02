@@ -18,11 +18,11 @@
   },
 
   "Outputs" : {
-    "eip_ip" : {
+    "EipIp" : {
       "Description" : "the elastic ip for cloud gateway",
       "Value" : { "Ref" : "EIP" }
     },
-    "eip_id" : {
+    "EipId" : {
       "Description" : "the elastic ip for cloud gateway",
       "Value" : { "Fn::GetAtt" : ["EIP", "AllocationId"] }
     }

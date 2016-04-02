@@ -8,6 +8,18 @@
       "Type": "String"
     },
 
+    "Vpc" : {
+      "Description" : "The ID of Vpc to deploy this vcg",
+      "Default" : "%s",
+      "Type": "String"
+    },
+
+    "PublicSubnet" : {
+      "Description" : "The ID of PublicSubnet to deploy this vcg",
+      "Default" : "%s",
+      "Type": "String"
+    },
+
     "PrivateSubnetCidr" : {
       "Type" : "String",
       "Default" : "%s"
@@ -28,7 +40,7 @@
       "Default" : "%s"
     },
 
-    "EipID" : {
+    "EipId" : {
       "Type" : "String",
       "Default" : "%s"
     },
@@ -62,10 +74,9 @@
   "Resources" : {
     "SecurityGroup" : {
        "Type" : "AWS::EC2::SecurityGroup",
-       "DependsOn": ["VPC"],
        "Properties" : {
           "GroupDescription" : "Allow all traffic",
-          "VpcId" : {"Ref" : "VPC"},
+          "VpcId" : {"Ref" : "Vpc"},
           "SecurityGroupIngress" : [{
                 "IpProtocol" : "-1",
                 "FromPort" : "-1",
@@ -199,7 +210,7 @@
     "AssociateEIP" : {
        "Type": "AWS::EC2::EIPAssociation",
        "Properties": {
-          "AllocationId": "EipID",
+          "AllocationId": "EipId",
           "InstanceId": { "Ref" : "Vcg" }
        }
     },
@@ -216,10 +227,10 @@
   },
 
   "Outputs" : {
-    "security_group_id" : {
+    "SecurityGroupId" : {
       "Value" : { "Ref" : "SecurityGroup" }
     },
-    "vcg_id" : {
+    "VcgId" : {
       "Value" : { "Ref" : "Vcg" }
     }
   }

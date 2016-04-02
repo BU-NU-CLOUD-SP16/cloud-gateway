@@ -115,17 +115,20 @@
       "Description" : "Public IP address of the newly created EC2 instance",
       "Value" : { "Ref" : "VPC" }
     },
+
     "PublicSubnetId" : {
       "Description" : "Public IP address of the newly created EC2 instance",
-      "Value" : { "Ref" : "P" }
+      "Value" : { "Ref" : "PublicSubnet" }
     },
+
     "PrivateSubnetId" : {
       "Description" : "Public IP address of the newly created EC2 instance",
-      "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
+      "Value" : { "Ref" : "PrivateSubnet" }
     },
+    
     "PrivateRouteTableId" : {
       "Description" : "Public IP address of the newly created EC2 instance",
-      "Value" : { "Fn::GetAtt" : [ "Vcg", "PublicIp" ] }
+      "Value" : { "Ref" : "PrivateRouteTable" }
     }
   }
 }
