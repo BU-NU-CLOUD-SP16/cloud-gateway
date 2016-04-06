@@ -69,7 +69,7 @@
       "Description" : "we use Ubuntu Server 14.04 LTS (HVM), SSD Volume Type "
     },
 
-    "SecurityGroup" {
+    "SecurityGroup" : {
       "Type" : "String",
       "Default" : "%s",
       "Description" : "Security group for this vcg"
@@ -177,7 +177,6 @@
             "easy_install aws-cfn-bootstrap-latest\n",
 
             "# Install strongswan after sending success signal\n",
-            "/usr/local/bin/cfn-signal -s \n",
             "apt-get -y install strongswan\n",
 
             "# Install the files and packages from the metadata\n",
@@ -206,7 +205,6 @@
 
     "vcgRoute" : {
       "Type" : "AWS::EC2::Route",
-      "DependsOn": ["Vcg"],
       "Properties" : {
         "RouteTableId" : { "Ref" : "PrivateRouteID" },
         "DestinationCidrBlock" : "0.0.0.0/0",
