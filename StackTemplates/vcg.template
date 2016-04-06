@@ -182,7 +182,6 @@
             "#!/bin/bash -ex\n",
 
             "apt-get update\n",
-            "apt-get -y install strongswan\n",
             "apt-get -y install libffi-dev libssl-dev\n",
             "apt-get -y install python-setuptools\n",
             "easy_install pyopenssl ndg-httpsclient pyasn1\n",
@@ -190,6 +189,10 @@
             "mkdir aws-cfn-bootstrap-latest\n",
             "curl https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz | tar xz -C aws-cfn-bootstrap-latest --strip-components 1\n",
             "easy_install aws-cfn-bootstrap-latest\n",
+
+            "# Install strongswan after sending success signal\n",
+            "/usr/local/bin/cfn-signal -s \n",
+            "apt-get -y install strongswan\n",
 
             "# Install the files and packages from the metadata\n",
             "/usr/local/bin/cfn-init ",
