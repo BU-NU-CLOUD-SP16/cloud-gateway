@@ -28,6 +28,26 @@
       }
     },
 
+    "SecurityGroup" : {
+       "Type" : "AWS::EC2::SecurityGroup",
+       "Properties" : {
+          "GroupDescription" : "Allow all traffic",
+          "VpcId" : {"Ref" : "VPC"},
+          "SecurityGroupIngress" : [{
+                "IpProtocol" : "-1",
+                "FromPort" : "-1",
+                "ToPort" : "-1",
+                "CidrIp" : "0.0.0.0/0"
+             }],
+          "SecurityGroupEgress" : [{
+             "IpProtocol" : "-1",
+             "FromPort" : "-1",
+             "ToPort" : "-1",
+             "CidrIp" : "0.0.0.0/0"
+          }]
+       }
+    },
+
 
     "PublicSubnet" : {
       "Type" : "AWS::EC2::Subnet",
@@ -128,6 +148,11 @@
     "PrivateRouteTableId" : {
       "Description" : "Public IP address of the newly created EC2 instance",
       "Value" : { "Ref" : "PrivateRouteTable" }
+    },
+
+    "SecurityGroup" : {
+      "Description" : "ID of SecurityGroup for VCG",
+      "Value" : { "Ref" : "SecurityGroup" }
     }
   }
 }

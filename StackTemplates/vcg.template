@@ -67,34 +67,20 @@
       "Type" : "String",
       "Default" : "%s",
       "Description" : "we use Ubuntu Server 14.04 LTS (HVM), SSD Volume Type "
+    },
+
+    "SecurityGroup" {
+      "Type" : "String",
+      "Default" : "%s",
+      "Description" : "Security group for this vcg"
     }
   },
 
 
   "Resources" : {
-    "SecurityGroup" : {
-       "Type" : "AWS::EC2::SecurityGroup",
-       "Properties" : {
-          "GroupDescription" : "Allow all traffic",
-          "VpcId" : {"Ref" : "Vpc"},
-          "SecurityGroupIngress" : [{
-                "IpProtocol" : "-1",
-                "FromPort" : "-1",
-                "ToPort" : "-1",
-                "CidrIp" : "0.0.0.0/0"
-             }],
-          "SecurityGroupEgress" : [{
-             "IpProtocol" : "-1",
-             "FromPort" : "-1",
-             "ToPort" : "-1",
-             "CidrIp" : "0.0.0.0/0"
-          }]
-       }
-    },     
 
     "Vcg": {
       "Type": "AWS::EC2::Instance",
-      "DependsOn": ["SecurityGroup"],
 
       "Metadata" : {
         "AWS::CloudFormation::Init" : {

@@ -157,7 +157,7 @@ def deploy_vcg(vcg_ip, vpc_stack = "vpc", stack_name = "vcg"):
     template = (template) % (config['KeyPair'], vpc_desc["VpcId"], vpc_desc["PublicSubnetId"],
                             config['PrivateCidr'], vpc_desc["PrivateRouteTableId"], 
                              vcg_ip, eip_ip, eip_id, config['HqPublicIp'], 
-                             psk, config['InstanceType'], config['ImageId'])
+                             psk, config['InstanceType'], config['ImageId'], vpc_desc["SecurityGroup"])
 
     create_stack(stack_name, template)
 
