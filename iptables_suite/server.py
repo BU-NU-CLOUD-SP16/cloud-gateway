@@ -19,7 +19,8 @@ def init_db():
     if not os.path.isfile(app.config['DATABASE']):
         # create database file
         path, file_name = os.path.split(app.config['DATABASE'])
-        os.makedirs(path)
+        if not os.path.isdir(path):
+            os.makedirs(path)
         open(file_name, 'a').close()
 
         # init tables
@@ -78,14 +79,14 @@ def dnat():
 
         # write new rules into database
         conn = get_db()
-        conn.cursor().execute('insert into dnat values (?,?)', (ori_ip, real_ip,))
-        conn.commit
+        conn.cursor().execute('insert into dnats values (?,?)', (ori_ip, real_ip,))
+        conn.commit()
 
         return "succ"
 
     elif request.method == 'DELETE':
-        ori_ip = request.args.get('ori_ip')
-        real_ip = request.args.get('real_ip')
+        ori_ip = request.form['ori_ip']
+        real_ip = request.form['real_ip']
         params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
 
         # send delete request to slave vcg
@@ -99,8 +100,9 @@ def dnat():
         del_arp(real_ip)
 
         # delete rule into database
-        cur = get_db().cursor()
-        cur.execute('DELETE FROM dnat WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
+        conn = get_db()
+        conn.cursor().execute('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
+        conn.commit()
         return "succ"
 
 
@@ -176,4 +178,5 @@ def del_port_fwd(dport, dst):
 
 if __name__ == "__main__":
     init_db()
-    app.run()
+    app.run(debug=True)
+
