@@ -26,18 +26,18 @@ def index():
 	# iptables = detail_iptable()
 	# Parse return value from detail_iptable in the form below
 	pub_iptables = [('10.0.0.1', '192.168.1.1'), \
-		     		('192.0.0.1', '10.0.0.1'),   \
+		     	('192.0.0.1', '10.0.0.1'),   \
 	                ('168.192.0.1', '54.5.9.1')]
 	pri_iptables = [('10.0.0.1', '192.168.1.1'), \
-		     		('192.0.0.1', '10.0.0.1'),   \
+		     	('192.0.0.1', '10.0.0.1'),   \
 	                ('10.0.0.1', '192.168.1.1'), \
-		     		('192.0.0.1', '10.0.0.1'),   \
+		     	('192.0.0.1', '10.0.0.1'),   \
 	                ('10.0.0.1', '192.168.1.1'), \
 	                ('10.0.0.1', '192.168.1.1'), \
-		     		('192.0.0.1', '10.0.0.1'),   \
-		     		('192.0.0.1', '10.0.0.1'),   \
-		     		('192.0.0.1', '10.0.0.1'),   \
-		     		('192.0.0.1', '10.0.0.1'),   \
+		     	('192.0.0.1', '10.0.0.1'),   \
+		     	('192.0.0.1', '10.0.0.1'),   \
+		     	('192.0.0.1', '10.0.0.1'),   \
+		     	('192.0.0.1', '10.0.0.1'),   \
 	                ('168.192.0.1', '54.5.9.1')]
 	return render_template("index.html", public_rows=pub_iptables, private_rows=pri_iptables)
 
@@ -46,7 +46,7 @@ def index():
 def dnat():
 	if request.method == 'GET':
 		cur = get_db().cursor()
-		for row in cur.execute("select * from dnats"):
+		for row in cur.execute("SELECT * FROM dnats"):
 			#do something
 	elif request.method == 'POST':
 		# send put request to slave vcg
@@ -83,7 +83,7 @@ def dnat():
 
 		# delete rule into database
 		cur = get_db().cursor()
-		cur.execute('delete from dnat where ori_dst=? and new_dst=?', (ori_dst, new_dst,))
+		cur.execute('DELETE FROM dnat WHERE ori_dst=? and new_dst=?', (ori_dst, new_dst,))
 		return "succ"
 
 
@@ -91,7 +91,7 @@ def dnat():
 def port_fwd():
 	if request.method == 'GET':
 		cur = get_db().cursor()
-		for row in cur.execute("select * from dnats"):
+		for row in cur.execute("SELECT * FROM dnats"):
 			#do something
 
 	elif request.method == 'POST':
@@ -103,7 +103,7 @@ def port_fwd():
 
 			# delete rule into database
 			cur = get_db().cursor()
-			cur.execute('insert into port_fwd values (?,?)', (dport,dst,))
+			cur.execute('INSERT INTO port_fwd values (?,?)', (dport,dst,))
 			return "succ"
 		except Exception as e:
 			return str(e)
@@ -116,7 +116,7 @@ def port_fwd():
 			del_port_fwd(dport, dst)
 
 			cur = get_db().cursor()
-			cur.execute('delete from dnat where dport=?', (dport,))
+			cur.execute('DELETE FROM dnat WHERE dport=?', (dport,))
 			return "succ"
 		except Exception as e:
 			return str(e)
