@@ -1,13 +1,37 @@
 from flask import Flask, render_template, request, g
+import os
 import subprocess
 import requests
+import sqlite3
+
 app = Flask(__name__)
 
 dnat_cmd = "sudo iptables -t nat %s PREROUTING -d %s -j DNAT --to-destination %s"
 port_fwd_cmd = "sudo iptables -t nat %s PREROUTING -d %s -dport %s -j DNAT --to-destination %s"
 
-# Database setting
-DATABASE = './database.db'
+# Override default database setting
+app.config.update(dict(
+    DATABASE=os.path.join(app.root_path, 'database.db'),
+    DEBUG=True
+))
+
+def init_db():
+    if not os.path.isfile(app.config['DATABASE']):
+        # create database file
+        path, file_name = os.path.split(app.config['DATABASE'])
+        os.makedirs(path)
+        open(file_name, 'a').close()
+
+        # init tables
+        conn = sqlite3.connect(app.config['DATABASE'])
+        cur = conn.cursor()
+        cur.execute("create table dnats (ori_ip text, real_ip text)")
+        cur.execute("create table port_fwds (dport int, dst text)")
+        conn.commit()
+        conn.close()
+
+def connect_to_database():
+    return sqlite3.connect(app.config['DATABASE'])
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -23,103 +47,93 @@ def close_connection(exception):
 
 @app.route("/")
 def index():
-	# iptables = detail_iptable()
-	# Parse return value from detail_iptable in the form below
-	pub_iptables = [('10.0.0.1', '192.168.1.1'), \
-		     	('192.0.0.1', '10.0.0.1'),   \
-	                ('168.192.0.1', '54.5.9.1')]
-	pri_iptables = [('10.0.0.1', '192.168.1.1'), \
-		     	('192.0.0.1', '10.0.0.1'),   \
-	                ('10.0.0.1', '192.168.1.1'), \
-		     	('192.0.0.1', '10.0.0.1'),   \
-	                ('10.0.0.1', '192.168.1.1'), \
-	                ('10.0.0.1', '192.168.1.1'), \
-		     	('192.0.0.1', '10.0.0.1'),   \
-		     	('192.0.0.1', '10.0.0.1'),   \
-		     	('192.0.0.1', '10.0.0.1'),   \
-		     	('192.0.0.1', '10.0.0.1'),   \
-	                ('168.192.0.1', '54.5.9.1')]
-	return render_template("index.html", public_rows=pub_iptables, private_rows=pri_iptables)
+    # return all exsiting dnat rules
+    dnats = get_db().cursor().execute("SELECT * FROM dnats")
+
+    # return all existing port forwarding rules
+    port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
+
+    return render_template("index.html", dnats=dnats, port_fwds=port_fwds)
 
 
 @app.route("/dnat", methods=['GET', 'POST', 'DELETE'])
 def dnat():
-	if request.method == 'GET':
-		cur = get_db().cursor()
-		for row in cur.execute("SELECT * FROM dnats"):
-			#do something
-	elif request.method == 'POST':
-		# send put request to slave vcg
-		rsp = requests.put('http://vcgip/dnat', data = request.form)
-		# if fail
-		if rsp.content != "succ": 
-			return rsp.content
+    if request.method == 'GET':
+        cur = get_db().cursor()
+        return cur.execute("SELECT * FROM dnats")
 
-		# execute rule add locally
-		add_dnat(request.form['ori_dst'], request.form['new_dst'])
-		add_arp(request.form['new_dst'])
+    elif request.method == 'POST':
+        # send put request to slave vcg
+        rsp = requests.put('http://vcgip/dnat', data = request.form)
+        # if fail
+        if rsp.content != "succ": 
+            return rsp.content
 
-		# write new rules into database
-		cur = get_db().cursor()
-		values = [ori_dst, new_dst]
-		cur.execute('insert into dnat values (?,?)', (ori_dst, new_dst,))
+        # execute rule add locally
+        add_dnat(request.form['ori_ip'], request.form['real_ip'])
+        add_arp(request.form['real_ip'])
 
-		return "succ"
+        # write new rules into database
+        cur = get_db().cursor()
+        values = [ori_ip, real_ip]
+        cur.execute('insert into dnat values (?,?)', (ori_ip, real_ip,))
 
-	elif request.method == 'DELETE':
-		ori_dst = request.args.get('ori_dst')
-		new_dst = request.args.get('new_dst')
-		params = {"ori_dst" : ori_dst, "new_dst" : new_dst}
+        return "succ"
 
-		# send delete request to slave vcg
-		rsp = request.delete('http://vcgip/dnat', params = params)
-		# if fail
-		if rsp.content != "succ": 
-			return rsp.content
+    elif request.method == 'DELETE':
+        ori_ip = request.args.get('ori_ip')
+        real_ip = request.args.get('real_ip')
+        params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
 
-		# execute rule delete locally
-		del_dnat(ori_dst, new_dst)
-		del_arp(new_dst)
+        # send delete request to slave vcg
+        rsp = request.delete('http://vcgip/dnat', params = params)
+        # if fail
+        if rsp.content != "succ": 
+            return rsp.content
 
-		# delete rule into database
-		cur = get_db().cursor()
-		cur.execute('DELETE FROM dnat WHERE ori_dst=? and new_dst=?', (ori_dst, new_dst,))
-		return "succ"
+        # execute rule delete locally
+        del_dnat(ori_ip, real_ip)
+        del_arp(real_ip)
+
+        # delete rule into database
+        cur = get_db().cursor()
+        cur.execute('DELETE FROM dnat WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
+        return "succ"
 
 
 @app.route("/port_fwd", methods=['GET', 'POST', 'DEL'])
 def port_fwd():
-	if request.method == 'GET':
-		cur = get_db().cursor()
-		for row in cur.execute("SELECT * FROM dnats"):
-			#do something
+    if request.method == 'GET':
+        cur = get_db().cursor()
+        for row in cur.execute("SELECT * FROM dnats"):
+            #do something
+            print "HaHaHa"
+    elif request.method == 'POST':
+        try:
+            dport = request.form['dport']
+            dst = request.form['dst']
+            
+            add_port_fwd(dport, dst)
 
-	elif request.method == 'POST':
-		try:
-			dport = request.form['dport']
-			dst = request.form['dst']
-			
-			add_port_fwd(dport, dst)
+            # delete rule into database
+            cur = get_db().cursor()
+            cur.execute('INSERT INTO port_fwd values (?,?)', (dport,dst,))
+            return "succ"
+        except Exception as e:
+            return str(e)
 
-			# delete rule into database
-			cur = get_db().cursor()
-			cur.execute('INSERT INTO port_fwd values (?,?)', (dport,dst,))
-			return "succ"
-		except Exception as e:
-			return str(e)
+    elif request.method == 'DELETE':
+        try:
+            dport = request.args.get('dport')
+            dst = request.args.get('dst')
 
-	elif request.method == 'DELETE':
-		try:
-			dport = request.args.get('dport')
-			dst = request.args.get('dst')
+            del_port_fwd(dport, dst)
 
-			del_port_fwd(dport, dst)
-
-			cur = get_db().cursor()
-			cur.execute('DELETE FROM dnat WHERE dport=?', (dport,))
-			return "succ"
-		except Exception as e:
-			return str(e)
+            cur = get_db().cursor()
+            cur.execute('DELETE FROM dnat WHERE dport=?', (dport,))
+            return "succ"
+        except Exception as e:
+            return str(e)
 
 
 # todo: We need ted to clearify that whether this "internet access"
@@ -127,7 +141,7 @@ def port_fwd():
 # But he described this in a wrong way in the previous meeting
 @app.route("/internet/", methods=['POST'])
 def internet():
-	return "None"
+    return "None"
 
 def add_dnat(ori, new):
     return subprocress.call(dnat_cmd % ("-A", ori, new), shell = True) == 0
@@ -137,10 +151,10 @@ def del_dnat(ori, new):
 
 
 def add_arp(ip, dev = "eth0"):
-	"""
-	A a fake static arp for given ip address to ensure DNAT sucecess
-	Note : DNAT will need mac addr for destination ip addr
-	"""
+    """
+    A a fake static arp for given ip address to ensure DNAT sucecess
+    Note : DNAT will need mac addr for destination ip addr
+    """
     cmd = ("arp -i %s -s %s 11:50:22:44:55:55") % (dev, ip)
     return subprocress.call(cmd, shell = True) == 0
 
@@ -149,13 +163,14 @@ def del_arp(ip):
 
 
 def add_port_fwd(dport, dst):
-	cmd = port_fwd_cmd % ("-A", "this_machien ip", dport, dst)
-	return subprocress.call(cmd, shell = True) == 0
+    cmd = port_fwd_cmd % ("-A", "this_machien ip", dport, dst)
+    return subprocress.call(cmd, shell = True) == 0
 
 def del_port_fwd(dport, dst):
-	cmd = port_fwd_cmd % ("-D", "this_machien ip", dport, dst)
-	return subprocress.call(cmd, shell = True) == 0
+    cmd = port_fwd_cmd % ("-D", "this_machien ip", dport, dst)
+    return subprocress.call(cmd, shell = True) == 0
 
 
 if __name__ == "__main__":
-	app.run()
+    init_db()
+    app.run()
