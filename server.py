@@ -97,14 +97,15 @@ def dnat():
         params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
 
         # send delete request to slave vcg
-        rsp = request.delete(app.config["SLAVE_URL"] + '/dnat', params = params)
+        rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', params = params)
+        
         # if fail
         if rsp.content != "succ": 
             return rsp.content
 
         # execute rule delete locally
-        # del_dnat(ori_ip, real_ip)
-        # del_arp(real_ip)
+        del_dnat(ori_ip, real_ip)
+        del_arp(real_ip)
 
         # delete rule into database
         execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
@@ -124,7 +125,7 @@ def port_fwd():
             dport = request.form['dport']
             dst = request.form['dst']
 
-            # add_port_fwd(dport, dst)
+            add_port_fwd(dport, dst)
 
             #  rule into database
             execute_sql('insert into port_fwds values (?, ?)', (dport, dst,))
@@ -137,7 +138,7 @@ def port_fwd():
             dport = request.form['dport']
             dst = request.form['dst']
 
-            # del_port_fwd(dport, dst)
+            del_port_fwd(dport, dst)
 
             execute_sql('DELETE FROM port_fwds WHERE dport=?', (dport,))
             return "succ"
