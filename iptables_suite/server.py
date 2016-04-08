@@ -27,7 +27,7 @@ def init_db():
         conn = sqlite3.connect(app.config['DATABASE'])
         cur = conn.cursor()
         cur.execute("create table dnats (ori_ip text, real_ip text)")
-        cur.execute("create table port_fwds (dport int, dst text)")
+        cur.execute("create table port_fwds (dport text, dst text)")
         conn.commit()
         conn.close()
 
@@ -39,6 +39,11 @@ def get_db():
     if db is None:
         db = g._database = connect_to_database()
     return db
+
+def execute_sql(query, params):
+    conn = get_db()
+    conn.cursor().execute(query, params)
+    conn.commit()
 
 @app.teardown_appcontext
 def close_connection(exception):
@@ -78,10 +83,7 @@ def dnat():
         add_arp(real_ip)
 
         # write new rules into database
-        conn = get_db()
-        conn.cursor().execute('insert into dnats values (?,?)', (ori_ip, real_ip,))
-        conn.commit()
-
+        execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
         return "succ"
 
     elif request.method == 'DELETE':
@@ -100,42 +102,39 @@ def dnat():
         del_arp(real_ip)
 
         # delete rule into database
-        conn = get_db()
-        conn.cursor().execute('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
-        conn.commit()
+        execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
         return "succ"
 
 
-@app.route("/port_fwd", methods=['GET', 'POST', 'DEL'])
+@app.route("/port_fwd", methods=['GET', 'POST', 'DELETE'])
 def port_fwd():
     if request.method == 'GET':
         cur = get_db().cursor()
         for row in cur.execute("SELECT * FROM dnats"):
             #do something
             print "HaHaHa"
+
     elif request.method == 'POST':
         try:
             dport = request.form['dport']
             dst = request.form['dst']
-            
-            add_port_fwd(dport, dst)
 
-            # delete rule into database
-            cur = get_db().cursor()
-            cur.execute('INSERT INTO port_fwd values (?,?)', (dport,dst,))
+            # add_port_fwd(dport, dst)
+
+            #  rule into database
+            execute_sql('insert into port_fwds values (?, ?)', (dport, dst,))
             return "succ"
         except Exception as e:
             return str(e)
 
     elif request.method == 'DELETE':
         try:
-            dport = request.args.get('dport')
-            dst = request.args.get('dst')
+            dport = request.form['dport']
+            dst = request.form['dst']
 
-            del_port_fwd(dport, dst)
+            # del_port_fwd(dport, dst)
 
-            cur = get_db().cursor()
-            cur.execute('DELETE FROM dnat WHERE dport=?', (dport,))
+            execute_sql('DELETE FROM port_fwds WHERE dport=?', (dport,))
             return "succ"
         except Exception as e:
             return str(e)

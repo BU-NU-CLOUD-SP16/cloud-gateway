@@ -24,7 +24,18 @@
                  url: "/dnat",
                  data: {ori_ip:$ori_ip, real_ip:$real_ip}
             });  
-            alert($ori_ip + "   " + $real_ip);
+        });
+
+        // Delete button for dnats
+        $('.port-fwds-delete').on('click', function(event) {
+            $row = $(this).closest('tr').remove();
+            $dport = $row.find("td:nth-child(1)").text();
+            $dst = $row.find("td:nth-child(2)").text();
+            $.ajax({
+                 type: "DELETE",
+                 url: "/port_fwd",
+                 data: {dport:$dport, dst:$dst}
+            });  
         });
 
       });      
@@ -98,7 +109,7 @@
                                <tr> 
                                    <!-- <td>2</td> -->
                                     <form action="/port_fwd" method="POST">
-                                       <th><input type="number" value="dport" name="dport class="form-control" placeholder="80"></input></th> 
+                                       <th><input type="text" value="dport" name="dport" class="form-control" placeholder="80"></input></th> 
                                        <th><input type="text" value="dst" name="dst" class="form-control" placeholder="0.0.0.0"></input></th> 
                                        <th><button class="btn btn-success btn-sm" type="submit"><span class="glyphicon glyphicon-plus"></span></button></th> 
                                     </form> 
