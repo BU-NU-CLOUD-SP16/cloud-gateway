@@ -3,6 +3,7 @@ import os
 import subprocess
 import requests
 import sqlite3
+import yaml
 
 app = Flask(__name__)
 
@@ -10,10 +11,14 @@ dnat_cmd = "sudo iptables -t nat %s PREROUTING -d %s -j DNAT --to-destination %s
 port_fwd_cmd = "sudo iptables -t nat %s PREROUTING -d %s -dport %s -j DNAT --to-destination %s"
 
 # Override default database setting
+vcg_config = yaml.load(open('config.yaml').read())
 app.config.update(dict(
-    DATABASE=os.path.join(app.root_path, 'database.db'),
-    DEBUG=True
-))
+    DATABASE = os.path.join(app.root_path, 'database.db'),
+    DEBUG = True,
+    SLAVE_URL = ("http://%s:%s") % (vcg_config["VcgIp"], vcg_config["VcgServicePort"])
+    ))
+
+
 
 def init_db():
     if not os.path.isfile(app.config['DATABASE']):
@@ -73,14 +78,14 @@ def dnat():
         real_ip = request.form['real_ip']
 
         # send put request to slave vcg
-        rsp = requests.put('http://vcgip/dnat', data = request.form)
+        rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
         # if fail
         if rsp.content != "succ": 
             return rsp.content
 
         # execute rule add locally
-        add_dnat(ori_ip, real_ip)
-        add_arp(real_ip)
+        # add_dnat(ori_ip, real_ip)
+        # add_arp(real_ip)
 
         # write new rules into database
         execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
@@ -92,14 +97,14 @@ def dnat():
         params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
 
         # send delete request to slave vcg
-        rsp = request.delete('http://vcgip/dnat', params = params)
+        rsp = request.delete(app.config["SLAVE_URL"] + '/dnat', params = params)
         # if fail
         if rsp.content != "succ": 
             return rsp.content
 
         # execute rule delete locally
-        del_dnat(ori_ip, real_ip)
-        del_arp(real_ip)
+        # del_dnat(ori_ip, real_ip)
+        # del_arp(real_ip)
 
         # delete rule into database
         execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
@@ -148,10 +153,10 @@ def internet():
     return "None"
 
 def add_dnat(ori, new):
-    return subprocress.call(dnat_cmd % ("-A", ori, new), shell = True) == 0
+    return subprocess.call(dnat_cmd % ("-A", ori, new), shell = True) == 0
 
 def del_dnat(ori, new):
-    return subprocress.call(dnat_cmd % ("-D", ori, new), shell = True) == 0
+    return subprocess.call(dnat_cmd % ("-D", ori, new), shell = True) == 0
 
 
 def add_arp(ip, dev = "eth0"):
@@ -160,19 +165,19 @@ def add_arp(ip, dev = "eth0"):
     Note : DNAT will need mac addr for destination ip addr
     """
     cmd = ("arp -i %s -s %s 11:50:22:44:55:55") % (dev, ip)
-    return subprocress.call(cmd, shell = True) == 0
+    return subprocess.call(cmd, shell = True) == 0
 
 def del_arp(ip):
-    return subprocress.call(["arp -d ", ip], shell = True) == 0
+    return subprocess.call(["arp -d ", ip], shell = True) == 0
 
 
 def add_port_fwd(dport, dst):
     cmd = port_fwd_cmd % ("-A", "this_machien ip", dport, dst)
-    return subprocress.call(cmd, shell = True) == 0
+    return subprocess.call(cmd, shell = True) == 0
 
 def del_port_fwd(dport, dst):
     cmd = port_fwd_cmd % ("-D", "this_machien ip", dport, dst)
-    return subprocress.call(cmd, shell = True) == 0
+    return subprocess.call(cmd, shell = True) == 0
 
 
 if __name__ == "__main__":

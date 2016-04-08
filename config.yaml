@@ -6,6 +6,8 @@ VpcCidr : "10.1.0.0/16"
 PublicCidr : "10.1.0.0/24" 
 PrivateCidr : "10.1.1.0/24" 
 
+VcgIp : "127.0.0.1"
+VcgServicePort : "5001"
 InstanceType : "t2.micro"
 ImageId : "ami-fce3c696"
 IpsecConfigPath : "/home/ubuntu/ipsec/"
