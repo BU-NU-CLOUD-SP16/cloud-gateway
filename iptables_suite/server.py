@@ -1,6 +1,10 @@
 from flask import Flask, render_template, request
 import subprocess
+import requests
 app = Flask(__name__)
+
+dnat_cmd = "sudo iptables -t nat %s PREROUTING -d %s -j DNAT --to-destination %s"
+port_fwd_cmd = "sudo iptables -t nat %s PREROUTING -d %s -dport %s -j DNAT --to-destination %s"
 
 @app.route("/")
 def index():
@@ -22,33 +26,96 @@ def index():
 	                ('168.192.0.1', '54.5.9.1')]
 	return render_template("index.html", public_rows=pub_iptables, private_rows=pri_iptables)
 
-@app.route("/iptables", methods=['GET', 'POST', 'PUT'])
-def iptables():
-	if request.method == 'POST':
-		# Let request.form contain all the attributes required to append to the iptable
-		# We can also add some sanity checks here
-		return append_iptables(request.form)
-	elif request.method == 'GET':
-		return detail_iptables()
-	elif request.method == 'PUT':
-		return update_iptables(request.form)
 
-# This returns the iptable
-def detail_iptables():
-	return subprocess.check_output('iptables', '-L', '-t', 'nat', shell=True) 
+@app.route("/dnat", methods=['GET', 'POST', 'DELETE'])
+def dnat():
+	if request.method == 'GET':
+		return list_dnat()
 
-# This adds a new entry to the iptables
-def append_iptables(form):
-	# Earlier thoughts were writting directly to file but that is bound to have 
-	# unwanted repurcussions
-    # with open("/usr/local/bin/iptables", "w") as iptables:
-    #     iptables.write('\n lorem ipsum..')
-    source_add = form['source_add']
-    dest_add   = form['dest_add']
-    return subprocess.check_output('iptables', source_add, dest_add, shell=True) 
+	elif request.method == 'POST':
+		# send put request to slave vcg
+		rsp = request.put('http://vcgip/dnat', data = request.form)
+		# if fail
+		if rsp: 
+			return ...
 
-def update_iptables(form):
-	pass
+		add_dnat(request.form['ori_dst'], request.form['new_dst'])
+		add_arp(request.form['new_dst'])
+		return ???
+
+	elif request.method == 'DELETE':
+		ori_dst = request.args.get('ori_dst')
+		new_dst = request.args.get('new_dst')
+		params = {"ori_dst" : ori_dst, "new_dst" : new_dst}
+
+		# send delete request to slave vcg
+		rsp = request.delete('http://vcgip/dnat', params = params)
+		# if fail
+		if rsp: 
+			return ...
+
+		# send del request to slave machine and parse response
+		del_dnat(ori_dst, new_dst)
+		del_arp(new_dst)
+		return 
+
+@app.route("/port_fwd", methods=['GET', 'POST', 'DEL'])
+def port_fwd():
+	if request.method == 'GET':
+		return list_port_pwd()
+
+	elif request.method == 'POST':
+		dport = request.form['dport']
+		dst = request.form['dst']
+		return add_port_fwd(dport, dst)
+
+	elif request.method == 'DELETE':
+		dport = request.args.get('dport')
+		dst = request.args.get('dst')
+		return del_port_fwd(dport, dst)
+
+# todo: We need ted to clearify that whether this "internet access"
+# is in face port forwarding, which means 'internet can access". 
+# But he described this in a wrong way in the previous meeting
+@app.route("/internet/", methods=['POST'])
+def internet():
+	return "None"
+
+
+def add_dnat(ori, new):
+    return subprocress.call(dnat_cmd % ("-A", ori, new), shell = True) == 0
+
+def del_dnat(ori, new):
+    return subprocress.call(dnat_cmd % ("-D", ori, new), shell = True) == 0
+
+def list_dnat():
+    rval = subprocress.check_output("iptables -t nat -L", shell = True)
+    # todo : handling output string
+
+def add_arp(ip, dev = "eth0"):
+	"""
+	A a fake static arp for given ip address to ensure DNAT sucecess
+	Note : DNAT will need mac addr for destination ip addr
+	"""
+    cmd = ("arp -i %s -s %s 11:50:22:44:55:55") % (dev, ip)
+    return subprocress.call(cmd, shell = True) == 0
+
+def del_arp(ip):
+    return subprocress.call(["arp -d ", ip], shell = True) == 0
+
+
+def add_port_fwd(dport, dst):
+	cmd = port_fwd_cmd % ("-A", "this_machien ip", dport, dst)
+	return subprocress.call(cmd, shell = True) == 0
+
+def del_port_fwd(dport, dst):
+	cmd = port_fwd_cmd % ("-D", "this_machien ip", dport, dst)
+	return subprocress.call(cmd, shell = True) == 0
+
+def list_port_pwd():
+    rval = subprocress.check_output("iptables -t nat -L", shell = True)
+    # todo : handling output string
+
 
 if __name__ == "__main__":
 	app.run()
