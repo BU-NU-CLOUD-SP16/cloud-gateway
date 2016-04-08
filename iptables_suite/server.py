@@ -63,6 +63,9 @@ def dnat():
         return cur.execute("SELECT * FROM dnats")
 
     elif request.method == 'POST':
+        ori_ip = request.form['ori_ip']
+        real_ip = request.form['real_ip']
+
         # send put request to slave vcg
         rsp = requests.put('http://vcgip/dnat', data = request.form)
         # if fail
@@ -70,13 +73,13 @@ def dnat():
             return rsp.content
 
         # execute rule add locally
-        add_dnat(request.form['ori_ip'], request.form['real_ip'])
-        add_arp(request.form['real_ip'])
+        add_dnat(ori_ip, real_ip)
+        add_arp(real_ip)
 
         # write new rules into database
-        cur = get_db().cursor()
-        values = [ori_ip, real_ip]
-        cur.execute('insert into dnat values (?,?)', (ori_ip, real_ip,))
+        conn = get_db()
+        conn.cursor().execute('insert into dnat values (?,?)', (ori_ip, real_ip,))
+        conn.commit
 
         return "succ"
 
