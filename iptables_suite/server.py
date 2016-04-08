@@ -1,10 +1,25 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, g
 import subprocess
 import requests
 app = Flask(__name__)
 
 dnat_cmd = "sudo iptables -t nat %s PREROUTING -d %s -j DNAT --to-destination %s"
 port_fwd_cmd = "sudo iptables -t nat %s PREROUTING -d %s -dport %s -j DNAT --to-destination %s"
+
+# Database setting
+DATABASE = './database.db'
+
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = connect_to_database()
+    return db
+
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
 
 @app.route("/")
 def index():
@@ -30,18 +45,26 @@ def index():
 @app.route("/dnat", methods=['GET', 'POST', 'DELETE'])
 def dnat():
 	if request.method == 'GET':
-		return list_dnat()
-
+		cur = get_db().cursor()
+		for row in cur.execute("select * from dnats"):
+			#do something
 	elif request.method == 'POST':
 		# send put request to slave vcg
-		rsp = request.put('http://vcgip/dnat', data = request.form)
+		rsp = requests.put('http://vcgip/dnat', data = request.form)
 		# if fail
-		if rsp: 
-			return ...
+		if rsp.content != "succ": 
+			return rsp.content
 
+		# execute rule add locally
 		add_dnat(request.form['ori_dst'], request.form['new_dst'])
 		add_arp(request.form['new_dst'])
-		return ???
+
+		# write new rules into database
+		cur = get_db().cursor()
+		values = [ori_dst, new_dst]
+		cur.execute('insert into dnat values (?,?)', (ori_dst, new_dst,))
+
+		return "succ"
 
 	elif request.method == 'DELETE':
 		ori_dst = request.args.get('ori_dst')
@@ -51,28 +74,53 @@ def dnat():
 		# send delete request to slave vcg
 		rsp = request.delete('http://vcgip/dnat', params = params)
 		# if fail
-		if rsp: 
-			return ...
+		if rsp.content != "succ": 
+			return rsp.content
 
-		# send del request to slave machine and parse response
+		# execute rule delete locally
 		del_dnat(ori_dst, new_dst)
 		del_arp(new_dst)
-		return 
+
+		# delete rule into database
+		cur = get_db().cursor()
+		cur.execute('delete from dnat where ori_dst=? and new_dst=?', (ori_dst, new_dst,))
+		return "succ"
+
 
 @app.route("/port_fwd", methods=['GET', 'POST', 'DEL'])
 def port_fwd():
 	if request.method == 'GET':
-		return list_port_pwd()
+		cur = get_db().cursor()
+		for row in cur.execute("select * from dnats"):
+			#do something
 
 	elif request.method == 'POST':
-		dport = request.form['dport']
-		dst = request.form['dst']
-		return add_port_fwd(dport, dst)
+		try:
+			dport = request.form['dport']
+			dst = request.form['dst']
+			
+			add_port_fwd(dport, dst)
+
+			# delete rule into database
+			cur = get_db().cursor()
+			cur.execute('insert into port_fwd values (?,?)', (dport,dst,))
+			return "succ"
+		except Exception as e:
+			return str(e)
 
 	elif request.method == 'DELETE':
-		dport = request.args.get('dport')
-		dst = request.args.get('dst')
-		return del_port_fwd(dport, dst)
+		try:
+			dport = request.args.get('dport')
+			dst = request.args.get('dst')
+
+			del_port_fwd(dport, dst)
+
+			cur = get_db().cursor()
+			cur.execute('delete from dnat where dport=?', (dport,))
+			return "succ"
+		except Exception as e:
+			return str(e)
+
 
 # todo: We need ted to clearify that whether this "internet access"
 # is in face port forwarding, which means 'internet can access". 
@@ -81,16 +129,12 @@ def port_fwd():
 def internet():
 	return "None"
 
-
 def add_dnat(ori, new):
     return subprocress.call(dnat_cmd % ("-A", ori, new), shell = True) == 0
 
 def del_dnat(ori, new):
     return subprocress.call(dnat_cmd % ("-D", ori, new), shell = True) == 0
 
-def list_dnat():
-    rval = subprocress.check_output("iptables -t nat -L", shell = True)
-    # todo : handling output string
 
 def add_arp(ip, dev = "eth0"):
 	"""
@@ -111,10 +155,6 @@ def add_port_fwd(dport, dst):
 def del_port_fwd(dport, dst):
 	cmd = port_fwd_cmd % ("-D", "this_machien ip", dport, dst)
 	return subprocress.call(cmd, shell = True) == 0
-
-def list_port_pwd():
-    rval = subprocress.check_output("iptables -t nat -L", shell = True)
-    # todo : handling output string
 
 
 if __name__ == "__main__":
