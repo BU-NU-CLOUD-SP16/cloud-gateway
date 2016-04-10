@@ -1,8 +1,11 @@
 from flask import Flask, render_template, request
 import subprocess
+import yaml
 app = Flask(__name__)
 
 dnat_cmd = "sudo iptables -t nat %s PREROUTING -d %s -j DNAT --to-destination %s"
+
+config = yaml.load(open('config.yaml','r').read())
 
 @app.route("/dnat", methods=['POST', 'DELETE'])
 def dnat():
@@ -24,7 +27,6 @@ def dnat():
             return str(e)
         return "succ"
 
-
 def add_dnat(ori, new):
     return subprocess.call(dnat_cmd % ("-A", ori, new), shell = True) == 0
 
@@ -32,4 +34,4 @@ def del_dnat(ori, new):
     return subprocess.call(dnat_cmd % ("-D", ori, new), shell = True) == 0
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=6432, debug=True)
+    app.run(host='0.0.0.0', port=config['VcgServicePort'], debug=True)
