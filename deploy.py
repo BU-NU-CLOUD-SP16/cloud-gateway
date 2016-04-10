@@ -163,13 +163,13 @@ def deploy_vcg(vcg_ip, vpc_stack = "vpc", stack_name = "vcg"):
     # Add connection in this machine and start tunnel
     # So that when IPsec is start in the remote site will have responde
     add_connection(config["HqPublicIp"], config["HqPrivateIp"], "0.0.0.0/0",
-                    eip_ip, eip_ip, config["PrivateCidr"], psk)
+                    eip_ip, eip_ip, config["VpcCidr"], psk)
     
     # create vcg 
     vpc_desc = describe_stack(vpc_stack)["outputs"]
     template = open("./StackTemplates/vcg.template").read()
     template = (template) % (config['KeyPair'], vpc_desc["VpcId"], vpc_desc["PublicSubnetId"],
-                            config['PrivateCidr'], vpc_desc["PrivateRouteTableId"], 
+                            config['VpcCidr'], vpc_desc["PrivateRouteTableId"], 
                              vcg_ip, eip_ip, eip_id, config['HqPublicIp'], 
                              psk, config['InstanceType'], config['ImageId'], vpc_desc["SecurityGroup"])
 
