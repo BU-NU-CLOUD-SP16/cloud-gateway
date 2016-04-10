@@ -88,8 +88,6 @@ def dnat():
    #         return rsp.content
 
         # execute rule add locally
-    #    add_dnat(ori_ip, real_ip)
-     #   add_arp(real_ip)
 
         # write new rules into database
 	#dnats = get_db().cursor().execute("SELECT * FROM dnats")
@@ -104,7 +102,7 @@ def dnat():
         params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
 
         # send delete request to slave vcg
-      #  rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', params = params)
+       # rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', data = params)
         
         # if fail
        # if rsp.content != "succ": 
@@ -182,5 +180,5 @@ def del_port_fwd(dport, dst):
 
 if __name__ == "__main__":
     init_db()
-    app.run(host='0.0.0.0',debug=True)
+    app.run(host='0.0.0.0',port=int(vcg_config['VcgServicePort']))
 

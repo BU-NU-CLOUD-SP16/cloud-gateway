@@ -169,7 +169,7 @@
 
             "apt-get update\n",
             "apt-get -y install libffi-dev libssl-dev\n",
-            "apt-get -y install python-setuptools python-pip\n",
+            "apt-get -y install python-setuptools python-pip git\n",
             "sudo pip install flask\n",
             "easy_install pyopenssl ndg-httpsclient pyasn1\n",
 
@@ -180,11 +180,18 @@
             "# Install strongswan after sending success signal\n",
             "apt-get -y install strongswan\n",
 
+            "# clone the repo\n",
+            "cd /home/ubuntu/\n",
+            "git clone https://github.com/BU-NU-CLOUD-SP16/cloud-gateway.git \n",
+
             "# Install the files and packages from the metadata\n",
             "/usr/local/bin/cfn-init ",
             "         --stack ", { "Ref" : "AWS::StackName" },
             "         --resource Vcg ",
             "         --region ", { "Ref" : "AWS::Region" }, "\n",
+
+            "# Start the web service", "\n",
+	          "sudo python /home/ubuntu/cloud-gateway/slave.py", "\n",
 
             "# Signal the status from cfn-init\n",
             "/usr/local/bin/cfn-signal -e $? ",
