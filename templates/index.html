@@ -13,13 +13,13 @@
     <script type="text/javascript">
 	 
       $(document).ready(function() {
-	$('.dnats-add').on('click', function(event) {
-            
+
+	$(document).on('click', '.dnats-add',function(event) {
             $row = $(this).closest('tr').add();
             $ori_ip = $row.find("td:nth-child(1)").children("input").val();
             $real_ip = $row.find("td:nth-child(2)").children("input").val();
 	    var len = $('#dnats').length;
-	    $('#dnats tbody:last').prepend('<tr><td>'+ $ori_ip +'</td><td>'+ $real_ip +'</td><td><button class="btn btn-danger btn-sm dnats-delete"><span class="glyphicon glyphicon-trash"></span></button></td> /tr>')  
+	    $('#dnats tbody:last').prepend('<tr><td>'+ $ori_ip +'</td><td>'+ $real_ip +'</td><td><button class="btn btn-danger btn-sm dnats-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
             $.ajax({
                  type: "POST",
 		 url: "/dnat",
@@ -29,7 +29,7 @@
 	
 
 	// Delete button for dnats
-        $('.dnats-delete').on('click', function(event) {
+        $(document).on('click', '.dnats-delete',function(event) {
             
             $row = $(this).closest('tr').remove();
             $ori_ip = $row.find("td:nth-child(1)").text();
