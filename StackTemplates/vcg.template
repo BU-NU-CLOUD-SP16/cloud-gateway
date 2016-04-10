@@ -169,7 +169,8 @@
 
             "apt-get update\n",
             "apt-get -y install libffi-dev libssl-dev\n",
-            "apt-get -y install python-setuptools\n",
+            "apt-get -y install python-setuptools python-pip\n",
+            "sudo pip install flask\n",
             "easy_install pyopenssl ndg-httpsclient pyasn1\n",
 
             "mkdir aws-cfn-bootstrap-latest\n",
