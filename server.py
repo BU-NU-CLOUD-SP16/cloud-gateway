@@ -18,8 +18,9 @@ app.config.update(dict(
     SLAVE_URL = ("http://%s:%s") % (vcg_config["VcgIp"], vcg_config["VcgServicePort"])
     ))
 
-
-
+#########################
+# DATABASE RELATED CODE #
+#########################
 def init_db():
     if not os.path.isfile(app.config['DATABASE']):
         # create database file
@@ -56,6 +57,9 @@ def close_connection(exception):
     if db is not None:
         db.close()
 
+#############
+# HOME PAGE #
+#############
 @app.route("/")
 def index():
     # return all exsiting dnat rules
@@ -84,8 +88,8 @@ def dnat():
             return rsp.content
 
         # execute rule add locally
-        # add_dnat(ori_ip, real_ip)
-        # add_arp(real_ip)
+        add_dnat(ori_ip, real_ip)
+        add_arp(real_ip)
 
         # write new rules into database
         execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
@@ -110,7 +114,6 @@ def dnat():
         # delete rule into database
         execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
         return "succ"
-
 
 @app.route("/port_fwd", methods=['GET', 'POST', 'DELETE'])
 def port_fwd():
@@ -145,20 +148,14 @@ def port_fwd():
         except Exception as e:
             return str(e)
 
-
-# todo: We need ted to clearify that whether this "internet access"
-# is in face port forwarding, which means 'internet can access". 
-# But he described this in a wrong way in the previous meeting
-@app.route("/internet/", methods=['POST'])
-def internet():
-    return "None"
-
+###################
+# HELPER FUNCTION #
+###################
 def add_dnat(ori, new):
     return subprocess.call(dnat_cmd % ("-A", ori, new), shell = True) == 0
 
 def del_dnat(ori, new):
     return subprocess.call(dnat_cmd % ("-D", ori, new), shell = True) == 0
-
 
 def add_arp(ip, dev = "eth0"):
     """
@@ -170,7 +167,6 @@ def add_arp(ip, dev = "eth0"):
 
 def del_arp(ip):
     return subprocess.call(["arp -d ", ip], shell = True) == 0
-
 
 def add_port_fwd(dport, dst):
     cmd = port_fwd_cmd % ("-A", "this_machien ip", dport, dst)

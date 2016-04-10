@@ -4,6 +4,7 @@ import subprocess
 import uuid
 import time
 import os
+import json
 
 conn_template  = """
 conn %s-%s
@@ -18,6 +19,19 @@ conn %s-%s
 secret_template = "%s %s : PSK \\\"%s\\\" \\\n"
 
 config = yaml.load(open('config.yaml').read())
+
+def get_ubuntu_amiid():
+    """
+    Return the Ubuntu AMI ID in the default Region in HVM virtualization
+    """
+    cmd = "aws ec2 describe-images " \
+          +"--filters \"Name=name,Values=ubuntu\"" \
+          +" \"Name=virtualization-type,Values=hvm\"" \
+          +" --query \'Images[*].{ID:ImageId}\'"
+
+    json_str = subprocess.check_output(cmd,shell=True)
+    return json.loads(json_str)[0]["ID"]
+
 
 def add_connection(left_id,left,left_subnet,
                     right_id,right,right_subnet,psk):
@@ -164,11 +178,7 @@ def deploy_vcg(vcg_ip, vpc_stack = "vpc", stack_name = "vcg"):
     return describe_stack("vcg")["outputs"]["VcgId"]
 
 def test():
-   # deploy_vpc()
-    deploy_vcg("10.1.0.100")
-  #  delete_stack("vcg")
-   # delete_stack("eip")
-   # delete_stack("vpc")
+    return
 
 if __name__ == "__main__":
     test()
