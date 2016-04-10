@@ -141,7 +141,8 @@
                 "4": { "command" : "sudo echo net.ipv4.conf.all.send_redirects = 0 >> /etc/sysctl.conf"},
                 "5": { "command" : "sudo echo 1 > /proc/sys/net/ipv4/ip_forward"},
                 "5": { "command" : "sudo sysctl -p"},
-                "start ipsec tunnel": {"command" : "sudo ipsec restart"}
+                "start ipsec tunnel": {"command" : "sudo ipsec restart"},
+                "start flask service": {"command" : "sudo python /home/ubuntu/cloud-gateway/slave.py"}
             }
           }
         }
@@ -179,6 +180,10 @@
 
             "# Install strongswan after sending success signal\n",
             "apt-get -y install strongswan\n",
+
+            "# clone the repo\n",
+            "cd /home/ubuntu/\n",
+            "git clone https://github.com/BU-NU-CLOUD-SP16/cloud-gateway.git \n",
 
             "# Install the files and packages from the metadata\n",
             "/usr/local/bin/cfn-init ",
