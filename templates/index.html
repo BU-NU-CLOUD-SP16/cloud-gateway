@@ -11,9 +11,24 @@
     <script src="https://code.jquery.com/jquery-2.2.3.min.js"   integrity="sha256a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo="   crossorigin="anonymous"></script>
 
     <script type="text/javascript">
-      
+	 
       $(document).ready(function() {
-        // Delete button for dnats
+	$('.dnats-add').on('click', function(event) {
+            
+            $row = $(this).closest('tr').add();
+            $ori_ip = $row.find("td:nth-child(1)").children("input").val();
+            $real_ip = $row.find("td:nth-child(2)").children("input").val();
+	    var len = $('#dnats').length;
+	    $('#dnats tbody:last').prepend('<tr><td>'+ $ori_ip +'</td><td>'+ $real_ip +'</td><td><button class="btn btn-danger btn-sm dnats-delete"><span class="glyphicon glyphicon-trash"></span></button></td> /tr>')  
+            $.ajax({
+                 type: "POST",
+		 url: "/dnat",
+                 data: {ori_ip:$ori_ip, real_ip:$real_ip}
+            });
+        });
+	
+
+	// Delete button for dnats
         $('.dnats-delete').on('click', function(event) {
             
             $row = $(this).closest('tr').remove();
@@ -22,7 +37,7 @@
             $.ajax({
                  type: "DELETE",
                  url: "/dnat",
-                 data: {ori_ip:$ori_ip, real_ip:$real_ip}
+		 data: {ori_ip:$ori_ip, real_ip:$real_ip}
             });  
         });
 
@@ -75,11 +90,11 @@
 
                                <tr> 
                                    <!-- <td>2</td> -->
-                                    <form action="/dnat" method="POST">
-                                       <th><input type="text" value="ori_ip" name="ori_ip" class="form-control" placeholder="0.0.0.0"></input></th> 
-                                       <th><input type="text" value="real_ip" name="real_ip" class="form-control" placeholder="0.0.0.0"></input></th> 
-                                       <th><button class="btn btn-success btn-sm" type="submit"><span class="glyphicon glyphicon-plus"></span></button></th> 
-                                    </form> 
+                                    <!--form action="/dnat" method="POST"-->
+                                       <td><input type="text" value="ori_ip" name="ori_ip" class="form-control" placeholder="0.0.0.0"></input></td> 
+                                       <td><input type="text" value="real_ip" name="real_ip" class="form-control" placeholder="0.0.0.0"></input></td> 
+                                       <td><button class="btn btn-success btn-sm dnats-add" type="submit"><span class="glyphicon glyphicon-plus"></span></button></td> 
+                                    <!--/form--> 
                                </tr>         
                             </tbody>
                     </table>

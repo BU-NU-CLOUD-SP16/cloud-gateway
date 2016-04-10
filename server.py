@@ -82,18 +82,21 @@ def dnat():
         real_ip = request.form['real_ip']
 
         # send put request to slave vcg
-        rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
-        # if fail
-        if rsp.content != "succ": 
-            return rsp.content
+#        rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
+ #       # if fail
+  #      if rsp.content != "succ": 
+   #         return rsp.content
 
         # execute rule add locally
-        add_dnat(ori_ip, real_ip)
-        add_arp(real_ip)
+    #    add_dnat(ori_ip, real_ip)
+     #   add_arp(real_ip)
 
         # write new rules into database
+	#dnats = get_db().cursor().execute("SELECT * FROM dnats")
+	#port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
         execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
-        return "succ"
+        #return render_template("index.html",dnats=dnats, port_fwds=port_fwds)
+	return "success" 
 
     elif request.method == 'DELETE':
         ori_ip = request.form['ori_ip']
@@ -101,16 +104,16 @@ def dnat():
         params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
 
         # send delete request to slave vcg
-        rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', params = params)
+      #  rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', params = params)
         
         # if fail
-        if rsp.content != "succ": 
-            return rsp.content
+       # if rsp.content != "succ": 
+        #    return rsp.content
 
         # execute rule delete locally
-        del_dnat(ori_ip, real_ip)
-        del_arp(real_ip)
-
+       # del_dnat(ori_ip, real_ip)
+       # del_arp(real_ip)
+	print params
         # delete rule into database
         execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
         return "succ"
