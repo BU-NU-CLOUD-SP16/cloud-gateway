@@ -191,7 +191,7 @@
             "         --region ", { "Ref" : "AWS::Region" }, "\n",
 
             "# Start the web service", "\n",
-	    "sudo python /home/ubuntu/cloud-gateway/slave.py", "\n",
+	          "sudo python /home/ubuntu/cloud-gateway/slave.py", "\n",
 
             "# Signal the status from cfn-init\n",
             "/usr/local/bin/cfn-signal -e $? ",
