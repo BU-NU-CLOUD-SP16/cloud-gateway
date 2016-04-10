@@ -1,0 +1,234 @@
+{
+  "Description" : "Example CloudFormation Stack",
+
+  "Parameters" : {
+    "VpcCidr" : {
+      "Type" : "String",
+      "Default" : "%s"
+    },
+
+    "PublicSubnetCidr" : {
+      "Type" : "String",
+      "Default" : "%s"
+    },
+
+    "PrivateSubnetCidr" : {
+      "Type" : "String",
+      "Default" : "%s"
+    }
+  },
+
+  "Resources" : {
+    "VPC" : {
+      "Type" : "AWS::EC2::VPC",
+      "Properties" : {
+        "CidrBlock" : {"Ref" : "VpcCidr"},
+        "EnableDnsSupport" : "true",
+        "EnableDnsHostnames" : "true"
+      }
+    },
+
+    "SecurityGroup" : {
+       "Type" : "AWS::EC2::SecurityGroup",
+       "Properties" : {
+          "GroupDescription" : "Allow all traffic",
+          "VpcId" : {"Ref" : "VPC"},
+          "SecurityGroupIngress" : [{
+                "IpProtocol" : "-1",
+                "FromPort" : "-1",
+                "ToPort" : "-1",
+                "CidrIp" : "0.0.0.0/0"
+             }],
+          "SecurityGroupEgress" : [{
+             "IpProtocol" : "-1",
+             "FromPort" : "-1",
+             "ToPort" : "-1",
+             "CidrIp" : "0.0.0.0/0"
+          }]
+       }
+    },
+
+
+    "PublicSubnet" : {
+      "Type" : "AWS::EC2::Subnet",
+      "DependsOn": ["VPC"],
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "CidrBlock" : { "Ref" : "PublicSubnetCidr" }
+      }
+    },  
+
+    "PrivateSubnet" : {
+      "Type" : "AWS::EC2::Subnet",
+      "DependsOn": ["VPC"],
+
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "CidrBlock" : { "Ref" : "PrivateSubnetCidr" }
+      }
+    },  
+
+    "IGW" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "DependsOn": ["VPC"],
+      "Properties" : {}
+    },
+
+    "attachIGW" : {
+       "Type" : "AWS::EC2::VPCGatewayAttachment",
+       "DependsOn": ["VPC", "IGW"],
+
+       "Properties" : {
+          "VpcId" : { "Ref" : "VPC" },
+          "InternetGatewayId" : { "Ref" : "IGW" }
+       }
+    },
+
+    "PublicRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "DependsOn": ["VPC"],
+      "Properties" : {
+        "VpcId" : {"Ref" : "VPC"}
+      }
+    },
+
+    "igwRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "DependsOn": ["IGW", "attachIGW"],
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PublicRouteTable" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "IGW" }
+      }
+    },
+
+    "assignPublicRouteTable" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "DependsOn": ["igwRoute", "PublicRouteTable"],
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "RouteTableId" : { "Ref" : "PublicRouteTable" }
+      }
+    },
+
+    "PrivateRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "DependsOn": ["VPC"],
+      "Properties" : {
+        "VpcId" : {"Ref" : "VPC"}
+      }
+    },
+
+    "assignPrivateRouteTable" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "DependsOn": ["PrivateRouteTable"],
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PrivateSubnet" },
+        "RouteTableId" : { "Ref" : "PrivateRouteTable" }
+      }
+    },
+    
+    "Vcg": {
+      "Type": "AWS::EC2::Instance",
+
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "config" : {
+            "commands" : {
+                "1": { "command" : { "Fn::Join" : [ " ", ["sudo for path in /proc/sys/net/ipv4/conf/*;",
+                                                          "do echo 0 > $path/accept_redirects;",
+                                                          "echo 0 > $path/send_redirects;",
+                                                          "done"]]}},
+                "2": { "command" : "sudo echo net.ipv4.ip_forward = 1 >> /etc/sysctl.conf"},
+                "3": { "command" : "sudo echo net.ipv4.conf.all.accept_redirects = 0 >> /etc/sysctl.conf"},
+                "4": { "command" : "sudo echo net.ipv4.conf.all.send_redirects = 0 >> /etc/sysctl.conf"},
+                "5": { "command" : "sudo echo 1 > /proc/sys/net/ipv4/ip_forward"},
+                "5": { "command" : "sudo sysctl -p"},
+                "start ipsec tunnel": {"command" : "sudo ipsec restart"}
+            }
+          }
+        }
+      },
+
+      "Properties": {
+        "ImageId" : { "Ref" : "ImageId" },
+        "InstanceType" : { "Ref" : "InstanceType" },
+        "KeyName" : { "Ref": "KeyPair" },
+
+        "SourceDestCheck" : "false",
+
+        "NetworkInterfaces" : [{
+          "GroupSet"                 : [{ "Ref" : "SecurityGroup" }],
+          "PrivateIpAddress"         : {"Ref" : "PrivateIP"},
+          "AssociatePublicIpAddress" : "true",
+          "DeviceIndex"              : "0",
+          "DeleteOnTermination"      : "true",
+          "SubnetId"                 : { "Ref" : "PublicSubnet" }
+        }],
+        
+        "UserData": {
+         "Fn::Base64": { "Fn::Join":["", [
+            "#!/bin/bash -ex\n",
+
+            "apt-get update\n",
+            "apt-get -y install libffi-dev libssl-dev\n",
+            "apt-get -y install python-setuptools\n",
+            "easy_install pyopenssl ndg-httpsclient pyasn1\n",
+
+            "mkdir aws-cfn-bootstrap-latest\n",
+            "curl https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz | tar xz -C aws-cfn-bootstrap-latest --strip-components 1\n",
+            "easy_install aws-cfn-bootstrap-latest\n",
+
+            "# Install strongswan after sending success signal\n",
+            "apt-get -y install strongswan\n",
+
+            "# Install the files and packages from the metadata\n",
+            "/usr/local/bin/cfn-init ",
+            "         --stack ", { "Ref" : "AWS::StackName" },
+            "         --resource Vcg ",
+            "         --region ", { "Ref" : "AWS::Region" }, "\n",
+
+            "# Signal the status from cfn-init\n",
+            "/usr/local/bin/cfn-signal -e $? ",
+            "         --stack ", { "Ref" : "AWS::StackName" },
+            "         --resource Vcg ",
+            "         --region ", { "Ref" : "AWS::Region" }, "\n",
+         ]]}}
+      }
+    },
+  },
+
+  "Outputs" : {
+    "VpcId" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Ref" : "VPC" }
+    },
+
+    "PublicSubnetId" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Ref" : "PublicSubnet" }
+    },
+
+    "PrivateSubnetId" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Ref" : "PrivateSubnet" }
+    },
+    
+    "PrivateRouteTableId" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Ref" : "PrivateRouteTable" }
+    },
+
+    "SecurityGroup" : {
+      "Description" : "ID of SecurityGroup for VCG",
+      "Value" : { "Ref" : "SecurityGroup" }
+    },
+
+    "InstanceID" : {
+      "Description" : "ID of a fully configure instance for creating a AMI image",
+      "Value" : { "Ref" : "Vcg" }
+    }
+  }
+}
+
+
