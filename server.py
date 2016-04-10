@@ -88,8 +88,8 @@ def dnat():
             return rsp.content
 
         # execute rule add locally
-        add_dnat(ori_ip, real_ip)
-        add_arp(real_ip)
+        # add_dnat(ori_ip, real_ip)
+        # add_arp(real_ip)
 
         # write new rules into database
         execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
@@ -179,5 +179,5 @@ def del_port_fwd(dport, dst):
 
 if __name__ == "__main__":
     init_db()
-    app.run(host='0.0.0.0', port=6432)
+    app.run(port=int(vcg_config['VcgServicePort'])
 
