@@ -99,30 +99,28 @@ def dnat():
     elif request.method == 'DELETE':
         ori_ip = request.form['ori_ip']
         real_ip = request.form['real_ip']
-        params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
+        # params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
 
         # send delete request to slave vcg
-       # rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', data = params)
+        # rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', data = params)
         
         # if fail
-       # if rsp.content != "succ": 
+        # if rsp.content != "succ": 
         #    return rsp.content
 
         # execute rule delete locally
-       # del_dnat(ori_ip, real_ip)
-       # del_arp(real_ip)
-	print params
+        # del_dnat(ori_ip, real_ip)
+        # del_arp(real_ip)
+	# print params
         # delete rule into database
         execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
-        return "succ"
+        return "success"
 
 @app.route("/port_fwd", methods=['GET', 'POST', 'DELETE'])
 def port_fwd():
     if request.method == 'GET':
         cur = get_db().cursor()
-        for row in cur.execute("SELECT * FROM dnats"):
-            #do something
-            print "HaHaHa"
+        return cur.execute("SELECT * FROM dnats")
 
     elif request.method == 'POST':
         try:
@@ -133,7 +131,7 @@ def port_fwd():
 
             #  rule into database
             execute_sql('insert into port_fwds values (?, ?)', (dport, dst,))
-            return "succ"
+            return "success"
         except Exception as e:
             return str(e)
 
@@ -144,8 +142,8 @@ def port_fwd():
 
             del_port_fwd(dport, dst)
 
-            execute_sql('DELETE FROM port_fwds WHERE dport=?', (dport,))
-            return "succ"
+            execute_sql('DELETE FROM port_fwds WHERE dport=? and dst=?', (dport, dst,))
+            return "success"
         except Exception as e:
             return str(e)
 
@@ -170,12 +168,12 @@ def del_arp(ip):
     return subprocess.call(["arp -d ", ip], shell = True) == 0
 
 def add_port_fwd(dport, dst):
-    cmd = port_fwd_cmd % ("-A", "this_machien ip", dport, dst)
-    return subprocess.call(cmd, shell = True) == 0
+    cmd = port_fwd_cmd % ("-A", "this_machine ip", dport, dst)
+    return subprocess.check_output(cmd, shell = True)
 
 def del_port_fwd(dport, dst):
-    cmd = port_fwd_cmd % ("-D", "this_machien ip", dport, dst)
-    return subprocess.call(cmd, shell = True) == 0
+    cmd = port_fwd_cmd % ("-D", "this_machine ip", dport, dst)
+    return subprocess.check_output(cmd, shell = True)
 
 
 if __name__ == "__main__":
