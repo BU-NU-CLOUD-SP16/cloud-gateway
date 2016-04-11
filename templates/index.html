@@ -15,7 +15,6 @@
       $(document).ready(function() {
         // Delete button for dnats
         $('.dnats-delete').on('click', function(event) {
-            
             $row = $(this).closest('tr').remove();
             $ori_ip = $row.find("td:nth-child(1)").text();
             $real_ip = $row.find("td:nth-child(2)").text();
