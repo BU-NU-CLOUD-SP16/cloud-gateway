@@ -173,10 +173,10 @@ def toggle_internet():
 # HELPER FUNCTION #
 ###################
 def add_dnat(ori, new):
-    return subprocess.call(dnat_cmd % ("-A", ori, new), shell = True) == 0
+    return subprocess.check_output(dnat_cmd % ("-A", ori, new), shell = True)
 
 def del_dnat(ori, new):
-    return subprocess.call(dnat_cmd % ("-D", ori, new), shell = True) == 0
+    return subprocess.check_output(dnat_cmd % ("-D", ori, new), shell = True)
 
 def add_arp(ip, dev = "eth0"):
     """
@@ -184,10 +184,10 @@ def add_arp(ip, dev = "eth0"):
     Note : DNAT will need mac addr for destination ip addr
     """
     cmd = ("arp -i %s -s %s 11:50:22:44:55:55") % (dev, ip)
-    return subprocess.call(cmd, shell = True) == 0
+    return subprocess.check_output(cmd, shell = True)
 
 def del_arp(ip):
-    return subprocess.call(["arp -d ", ip], shell = True) == 0
+    return subprocess.check_output(["arp -d ", ip], shell = True)
 
 def add_port_fwd(dport, dst):
     cmd = port_fwd_cmd % ("-A", "this_machine ip", dport, dst)
