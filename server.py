@@ -82,46 +82,45 @@ def dnat():
         real_ip = request.form['real_ip']
 
         # send put request to slave vcg
-        rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
-        # if fail
-        if rsp.content != "succ": 
-            return rsp.content
+#        rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
+ #       # if fail
+  #      if rsp.content != "succ": 
+   #         return rsp.content
 
         # execute rule add locally
-        # add_dnat(ori_ip, real_ip)
-        # add_arp(real_ip)
 
         # write new rules into database
+	#dnats = get_db().cursor().execute("SELECT * FROM dnats")
+	#port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
         execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
-        return "succ"
+        #return render_template("index.html",dnats=dnats, port_fwds=port_fwds)
+	return "success" 
 
     elif request.method == 'DELETE':
         ori_ip = request.form['ori_ip']
         real_ip = request.form['real_ip']
-        params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
+        # params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
 
         # send delete request to slave vcg
-        rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', params = params)
+        # rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', data = params)
         
         # if fail
-        if rsp.content != "succ": 
-            return rsp.content
+        # if rsp.content != "succ": 
+        #    return rsp.content
 
         # execute rule delete locally
-        del_dnat(ori_ip, real_ip)
-        del_arp(real_ip)
-
+        # del_dnat(ori_ip, real_ip)
+        # del_arp(real_ip)
+	# print params
         # delete rule into database
         execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
-        return "succ"
+        return "success"
 
 @app.route("/port_fwd", methods=['GET', 'POST', 'DELETE'])
 def port_fwd():
     if request.method == 'GET':
         cur = get_db().cursor()
-        for row in cur.execute("SELECT * FROM dnats"):
-            #do something
-            print "HaHaHa"
+        return cur.execute("SELECT * FROM dnats")
 
     elif request.method == 'POST':
         try:
@@ -132,7 +131,8 @@ def port_fwd():
 
             #  rule into database
             execute_sql('insert into port_fwds values (?, ?)', (dport, dst,))
-            return "succ"
+            return "success"
+
         except Exception as e:
             return str(e)
 
@@ -143,10 +143,31 @@ def port_fwd():
 
             del_port_fwd(dport, dst)
 
-            execute_sql('DELETE FROM port_fwds WHERE dport=?', (dport,))
-            return "succ"
+            execute_sql('DELETE FROM port_fwds WHERE dport=? and dst=?', (dport, dst,))
+            return "success"
+
         except Exception as e:
             return str(e)
+
+@app.route("/toggle_internet", methods=['GET', 'POST'])
+def toggle_internet():
+    if request.method == 'GET':
+	cur = get_db().cursor()
+	return cur.execute("SELECT * FROM internet")
+
+    elif request.method == 'POST':
+	try:
+	    flag = request.form['flag']
+
+	    if flag=="True": disable_internet()
+	    else: enable_internet()
+
+	    execute_sql('UPDATE internet SET status=?', (not flag,))
+
+	    return "success"
+
+	except Exception as e:
+	    return str(e)
 
 ###################
 # HELPER FUNCTION #
@@ -169,13 +190,20 @@ def del_arp(ip):
     return subprocess.call(["arp -d ", ip], shell = True) == 0
 
 def add_port_fwd(dport, dst):
-    cmd = port_fwd_cmd % ("-A", "this_machien ip", dport, dst)
-    return subprocess.call(cmd, shell = True) == 0
+    cmd = port_fwd_cmd % ("-A", "this_machine ip", dport, dst)
+    return subprocess.check_output(cmd, shell = True)
 
 def del_port_fwd(dport, dst):
-    cmd = port_fwd_cmd % ("-D", "this_machien ip", dport, dst)
-    return subprocess.call(cmd, shell = True) == 0
+    cmd = port_fwd_cmd % ("-D", "this_machine ip", dport, dst)
+    return subprocess.check_output(cmd, shell = True)
 
+def enable_internet(): print "INTERNET ENABLE"
+   # cmd =  
+   # return subprocess. 
+
+def disable_internet(): print "INTERNET DISABLE"
+   # cmd = 
+   # return subprocess.
 
 if __name__ == "__main__":
     init_db()
