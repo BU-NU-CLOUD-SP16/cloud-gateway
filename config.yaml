@@ -1,6 +1,7 @@
 KeyPair: "N Viginia" 
 HqPublicIp : "52.26.103.3" 
 HqPrivateIp : "10.0.1.121" 
+HqCidr : "10.0.0.0/16"
 
 VpcCidr : "10.1.0.0/16" 
 PublicCidr : "10.1.0.0/24" 

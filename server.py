@@ -9,13 +9,15 @@ app = Flask(__name__)
 
 dnat_cmd = "sudo iptables -t nat %s PREROUTING -d %s -j DNAT --to-destination %s"
 port_fwd_cmd = "sudo iptables -t nat %s PREROUTING -d %s -dport %s -j DNAT --to-destination %s"
+internet_cmd = "sudo iptables -t nat %s POSTROUTING ! -d %d -j MASQUERADE"
+internet_tag_file = "./internet_conn_on"
 
 # Override default database setting
-vcg_config = yaml.load(open('config.yaml').read())
+net_config = yaml.load(open('config.yaml').read())
 app.config.update(dict(
     DATABASE = os.path.join(app.root_path, 'database.db'),
     DEBUG = True,
-    SLAVE_URL = ("http://%s:%s") % (vcg_config["VcgIp"], vcg_config["VcgServicePort"])
+    SLAVE_URL = ("http://%s:%s") % (net_config["VcgIp"], net_config["VcgServicePort"])
     ))
 
 #########################
@@ -82,36 +84,36 @@ def dnat():
         real_ip = request.form['real_ip']
 
         # send put request to slave vcg
-#        rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
- #       # if fail
-  #      if rsp.content != "succ": 
-   #         return rsp.content
+        rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
+        # if fail
+        if rsp.content != "succ": 
+           return rsp.content
 
         # execute rule add locally
 
         # write new rules into database
-	#dnats = get_db().cursor().execute("SELECT * FROM dnats")
-	#port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
+        dnats = get_db().cursor().execute("SELECT * FROM dnats")
+        port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
         execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
-        #return render_template("index.html",dnats=dnats, port_fwds=port_fwds)
-	return "success" 
+
+        return "success" 
 
     elif request.method == 'DELETE':
         ori_ip = request.form['ori_ip']
         real_ip = request.form['real_ip']
-        # params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
+        params = {"ori_ip" : ori_ip, "real_ip" : real_ip}
 
         # send delete request to slave vcg
-        # rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', data = params)
+        rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', data = params)
         
-        # if fail
-        # if rsp.content != "succ": 
-        #    return rsp.content
+        if fail
+        if rsp.content != "succ": 
+           return rsp.content
 
         # execute rule delete locally
-        # del_dnat(ori_ip, real_ip)
-        # del_arp(real_ip)
-	# print params
+        del_dnat(ori_ip, real_ip)
+        del_arp(real_ip)
+
         # delete rule into database
         execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
         return "success"
@@ -149,34 +151,29 @@ def port_fwd():
         except Exception as e:
             return str(e)
 
-@app.route("/toggle_internet", methods=['GET', 'POST'])
+@app.route("/internet_connection", methods=['POST'])
 def toggle_internet():
-    if request.method == 'GET':
-	cur = get_db().cursor()
-	return cur.execute("SELECT * FROM internet")
-
-    elif request.method == 'POST':
-	try:
-	    flag = request.form['flag']
-
-	    if flag=="True": disable_internet()
-	    else: enable_internet()
-
-	    execute_sql('UPDATE internet SET status=?', (not flag,))
-
-	    return "success"
-
-	except Exception as e:
-	    return str(e)
+    if request.method == 'PUT':
+        try:
+            if request.form['state'] == "On": 
+                enable_internet()
+            elif request.form['state'] == "Off":
+                disable_internet()
+            return "succ"
+        except Exception as e:
+            return str(e)
 
 ###################
 # HELPER FUNCTION #
 ###################
+def exeute_shell(cmd):
+    subprocess.check_output(cmd, shell = True)
+
 def add_dnat(ori, new):
-    return subprocess.check_output(dnat_cmd % ("-A", ori, new), shell = True)
+    return exeute_shell(dnat_cmd % ("-A", ori, new))
 
 def del_dnat(ori, new):
-    return subprocess.check_output(dnat_cmd % ("-D", ori, new), shell = True)
+    return exeute_shell(dnat_cmd % ("-D", ori, new))
 
 def add_arp(ip, dev = "eth0"):
     """
@@ -184,28 +181,37 @@ def add_arp(ip, dev = "eth0"):
     Note : DNAT will need mac addr for destination ip addr
     """
     cmd = ("arp -i %s -s %s 11:50:22:44:55:55") % (dev, ip)
-    return subprocess.check_output(cmd, shell = True)
+    return exeute_shell(cmd)
 
 def del_arp(ip):
-    return subprocess.check_output(["arp -d ", ip], shell = True)
+    return exeute_shell("arp -d " + ip)
 
 def add_port_fwd(dport, dst):
     cmd = port_fwd_cmd % ("-A", "this_machine ip", dport, dst)
-    return subprocess.check_output(cmd, shell = True)
+    return exeute_shell(cmd)
 
 def del_port_fwd(dport, dst):
     cmd = port_fwd_cmd % ("-D", "this_machine ip", dport, dst)
-    return subprocess.check_output(cmd, shell = True)
+    return exeute_shell(cmd)
 
-def enable_internet(): print "INTERNET ENABLE"
-   # cmd =  
-   # return subprocess. 
+def enable_internet():
+    # create a file to indicate the state of internet connection
+    if not os.isfile(internet_tag_file):
+        open(internet_tag_file, "a").close()
 
-def disable_internet(): print "INTERNET DISABLE"
-   # cmd = 
-   # return subprocess.
+    total_subnet = ",".join([net_config["HqCidr"],net_config["VpcCidr"]])
+    cmd = internet_cmd % ('-A', total_subnet)
+    return exeute_shell(cmd)
+
+def disable_internet():
+    if os.isfile(internet_tag_file):
+        os.remove(internet_tag_file)
+
+    total_subnet = ",".join([net_config["HqCidr"],net_config["VpcCidr"]])
+    cmd = internet_cmd % ('-D', total_subnet)
+    return exeute_shell(cmd)
 
 if __name__ == "__main__":
     init_db()
-    app.run(host='0.0.0.0',port=int(vcg_config['VcgServicePort']))
+    app.run(port=int(net_config['VcgServicePort']))
 
