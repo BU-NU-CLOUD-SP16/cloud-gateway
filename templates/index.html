@@ -6,9 +6,9 @@
 <html>
 <head>
     <title>Cloud Gateway</title>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 
-    <script src="https://code.jquery.com/jquery-2.2.3.min.js"   integrity="sha256a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo="   crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-2.2.3.min.js"  crossorigin="anonymous"></script>
 
     <script type="text/javascript">
 	 
@@ -65,9 +65,16 @@
             });  
         });
 
-	// Button Color Change on click
+	// Toggle Internet Button
 	$('.toggle-internet').click( function() {
+	   $flag = $(this).attr("value");
 	   $(this).toggleClass('btn-danger').toggleClass('btn-success');
+           $.ajax({
+		type: "POST",
+		url : "/toggle_internet",
+		data: {flag:$flag}
+	   });
+	   $flag == "True" ? $(this).val("False") :  $(this).val("True");
 	});
 
       });      
@@ -79,7 +86,7 @@
 	<div class="row">
         <h2 class="col-lg-6"><span class="glyphicon glyphicon-cloud"></span> Cloud Gateway <label class="label label-info">iptables</label></h2>
 	<h2 class="col-lg-6">
-		<button class="btn btn-lg btn-danger toggle-internet pull-right">Internet</button>
+		<button value="False" class="btn btn-lg btn-danger toggle-internet pull-right">Internet</button>
 	</h2> 
 	</div>
         <div class="row">
