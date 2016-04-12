@@ -18,11 +18,8 @@ def dnat():
  
     elif request.method == 'DELETE':
         try:
-            ori_ip = request.form['ori_ip']
-            real_ip = request.form['real_ip']
-
             # send del request to slave machine and parse response
-            del_dnat(ori_ip, real_ip)
+            del_dnat(request.form['ori_ip'], request.form['real_ip'])
         except Exception as e:
             return str(e)
         return "succ"
