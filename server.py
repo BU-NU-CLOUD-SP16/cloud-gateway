@@ -88,15 +88,18 @@ def dnat():
         rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
         # if fail
         if rsp.content != "succ": 
-            print rsp.content
             return rsp.content
 
         # execute rule add locally
-        dnats = get_db().cursor().execute("SELECT * FROM dnats")
-        port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
+        try:
+            dnats = get_db().cursor().execute("SELECT * FROM dnats")
+            port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
 
-        # write new rules into database
-        execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
+            # write new rules into database
+            execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
+        except Exception as e:
+            print str(e)
+            return str(e)
 
         return "success" 
 
