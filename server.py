@@ -152,7 +152,7 @@ def port_fwd():
 
 @app.route("/internet_connection", methods=['POST'])
 def toggle_internet():
-    if request.method == 'PUT':
+    if request.method == 'POST':
         try:
             if request.form['flag'] == "True": 
                 enable_internet()
