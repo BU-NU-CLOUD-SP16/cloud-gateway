@@ -88,7 +88,8 @@ def dnat():
         rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
         # if fail
         if rsp.content != "succ": 
-           return rsp.content
+            print rsp.content
+            return rsp.content
 
         # execute rule add locally
         dnats = get_db().cursor().execute("SELECT * FROM dnats")
@@ -151,7 +152,6 @@ def port_fwd():
 def internet_connection():
     if request.method == 'POST':
         try:
-            print request.form
             if request.form['flag'] == "True": 
                 enable_internet()
             elif request.form['flag'] == "False":
@@ -164,7 +164,7 @@ def internet_connection():
 # HELPER FUNCTION #
 ###################
 def exeute_shell(cmd):
-    subprocess.check_output(cmd, shell = True)
+    return subprocess.check_output(cmd, shell = True)
 
 def add_dnat(ori, new):
     return exeute_shell(dnat_cmd % ("-A", ori, new))
@@ -199,7 +199,7 @@ def enable_internet():
     if not os.path.isfile(internet_tag_file):
         open(internet_tag_file, "a").close()
 
-    total_subnet = ",".join([net_config["HqCidr"],net_config["VpcCidr"]])
+    total_subnet = ", ".join([net_config["HqCidr"],net_config["VpcCidr"]])
     cmd = internet_cmd % ('-A', total_subnet)
     return exeute_shell(cmd)
 
