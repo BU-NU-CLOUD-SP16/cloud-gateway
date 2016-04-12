@@ -183,8 +183,8 @@ def add_arp(ip, dev = "eth0"):
     cmd = ("arp -i %s -s %s 11:50:22:44:55:55") % (dev, ip)
     return exeute_shell(cmd)
 
-def del_arp(ip):
-    return exeute_shell("arp -d " + ip)
+def del_arp(ip, dev = "eth0"):
+    return exeute_shell(("arp -i %s -d %s") % (dev, ip))
 
 def add_port_fwd(proto, dport, dst):
     cmd = port_fwd_cmd % ("-A", proto, net_config["HqPrivateIp"], dport, dst)
