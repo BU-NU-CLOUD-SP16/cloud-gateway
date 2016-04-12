@@ -107,7 +107,7 @@ def dnat():
         # send delete request to slave vcg
         rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', data = params)
         
-        if fail
+        # if fail
         if rsp.content != "succ": 
            return rsp.content
 
