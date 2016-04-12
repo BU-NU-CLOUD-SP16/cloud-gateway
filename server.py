@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, g
+
 import os
 import subprocess
 import requests
@@ -8,14 +9,16 @@ import yaml
 app = Flask(__name__)
 
 dnat_cmd = "sudo iptables -t nat %s PREROUTING -d %s -j DNAT --to-destination %s"
-port_fwd_cmd = "sudo iptables -t nat %s PREROUTING -d %s -dport %s -j DNAT --to-destination %s"
+port_fwd_cmd = "sudo iptables -t nat %s PREROUTING -p %s -d %s --dport %s -j DNAT --to-destination %s"
+internet_cmd = "sudo iptables -t nat %s POSTROUTING ! -d %d -j MASQUERADE"
+internet_tag_file = "./internet_conn_on"
 
 # Override default database setting
-vcg_config = yaml.load(open('config.yaml').read())
+net_config = yaml.load(open('config.yaml').read())
 app.config.update(dict(
     DATABASE = os.path.join(app.root_path, 'database.db'),
     DEBUG = True,
-    SLAVE_URL = ("http://%s:%s") % (vcg_config["VcgIp"], vcg_config["VcgServicePort"])
+    SLAVE_URL = ("http://%s:%s") % (net_config["VcgIp"], net_config["VcgServicePort"])
     ))
 
 #########################
@@ -33,7 +36,7 @@ def init_db():
         conn = sqlite3.connect(app.config['DATABASE'])
         cur = conn.cursor()
         cur.execute("create table dnats (ori_ip text, real_ip text)")
-        cur.execute("create table port_fwds (dport text, dst text)")
+        cur.execute("create table port_fwds (dport text, dst text, protocol text)")
         conn.commit()
         conn.close()
 
@@ -68,7 +71,7 @@ def index():
     # return all existing port forwarding rules
     port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
 
-    return render_template("index.html", dnats=dnats, port_fwds=port_fwds)
+    return render_template("index.html", dnats=dnats, port_fwds=port_fwds, internet_state=str(internet_on()))
 
 
 @app.route("/dnat", methods=['GET', 'POST', 'DELETE'])
@@ -81,7 +84,7 @@ def dnat():
         ori_ip = request.form['ori_ip']
         real_ip = request.form['real_ip']
 
-        # send put request to slave vcg
+        # send put request boboboto slave vcg
 #        rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
  #       # if fail
   #      if rsp.content != "succ": 
@@ -118,19 +121,16 @@ def dnat():
 
 @app.route("/port_fwd", methods=['GET', 'POST', 'DELETE'])
 def port_fwd():
-    if request.method == 'GET':
-        cur = get_db().cursor()
-        return cur.execute("SELECT * FROM dnats")
-
-    elif request.method == 'POST':
+    if request.method == 'POST':
         try:
             dport = request.form['dport']
             dst = request.form['dst']
-
-            add_port_fwd(dport, dst)
-
+            protocol = request.form['protocol']
+            # print request.form
+            add_port_fwd(protocol, dport, dst)
+          
             #  rule into database
-            execute_sql('insert into port_fwds values (?, ?)', (dport, dst,))
+            execute_sql('insert into port_fwds values (?, ?, ?)', (dport, dst, protocol))
             return "success"
 
         except Exception as e:
@@ -138,12 +138,13 @@ def port_fwd():
 
     elif request.method == 'DELETE':
         try:
+            print request.form
             dport = request.form['dport']
             dst = request.form['dst']
-
-            del_port_fwd(dport, dst)
-
-            execute_sql('DELETE FROM port_fwds WHERE dport=? and dst=?', (dport, dst,))
+            protocol = request.form['protocol']
+            #del_port_fwd(proto, dport, dst)
+            execute_sql('DELETE FROM port_fwds WHERE dport=? and dst=? and protocol=?', (dport, dst, protocol,))
+            print "haha1"
             return "success"
 
         except Exception as e:
@@ -189,23 +190,37 @@ def add_arp(ip, dev = "eth0"):
 def del_arp(ip):
     return subprocess.call(["arp -d ", ip], shell = True) == 0
 
-def add_port_fwd(dport, dst):
-    cmd = port_fwd_cmd % ("-A", "this_machine ip", dport, dst)
+def add_port_fwd(proto, dport, dst):
+    cmd = port_fwd_cmd % ("-A", proto,"10.0.1.122", dport, dst)
     return subprocess.check_output(cmd, shell = True)
 
-def del_port_fwd(dport, dst):
-    cmd = port_fwd_cmd % ("-D", "this_machine ip", dport, dst)
+def del_port_fwd(proto, dport, dst):
+    cmd = port_fwd_cmd % ("-D", proto,"10.0.1.122", dport, dst)
     return subprocess.check_output(cmd, shell = True)
 
-def enable_internet(): print "INTERNET ENABLE"
-   # cmd =  
-   # return subprocess. 
+def internet_on():
+    return os.path.isfile(internet_tag_file)
 
-def disable_internet(): print "INTERNET DISABLE"
-   # cmd = 
-   # return subprocess.
+def enable_internet():
+    print "INTERNET ENABLED"
+    # create a file to indicate the state of internet connection
+    if not os.path.isfile(internet_tag_file):
+        open(internet_tag_file, "a").close()
+
+    total_subnet = ",".join([net_config["HqCidr"],net_config["VpcCidr"]])
+    cmd = internet_cmd % ('-A', total_subnet)
+    return exeute_shell(cmd)
+
+def disable_internet():
+    print "INTERNET DISABLED"
+    if os.path.isfile(internet_tag_file):
+        os.remove(internet_tag_file)
+
+    total_subnet = ",".join([net_config["HqCidr"],net_config["VpcCidr"]])
+    cmd = internet_cmd % ('-D', total_subnet)
+    return exeute_shell(cmd)
 
 if __name__ == "__main__":
     init_db()
-    app.run(host='0.0.0.0',port=int(vcg_config['VcgServicePort']))
+    app.run(host='0.0.0.0',port=int(net_config['VcgServicePort']))
 
