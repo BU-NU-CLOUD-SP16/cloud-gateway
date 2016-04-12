@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 dnat_cmd = "sudo iptables -t nat %s PREROUTING -d %s -j DNAT --to-destination %s"
 port_fwd_cmd = "sudo iptables -t nat %s PREROUTING -p %s -d %s --dport %s -j DNAT --to-destination %s"
-internet_cmd = "sudo iptables -t nat %s POSTROUTING ! -d %d -j MASQUERADE"
+internet_cmd = "sudo iptables -t nat %s POSTROUTING ! -d %s -j MASQUERADE"
 internet_tag_file = "./internet_conn_on"
 
 # Override default database setting

@@ -76,9 +76,9 @@
 	   $flag = $(this).attr("value");
 	   $(this).toggleClass('btn-danger').toggleClass('btn-success');
            $.ajax({
-		type: "POST",
-		url : "/internet_connection",
-		data: {flag:$flag}
+        		type: "POST",
+        		url : "/internet_connection",
+        		data: {flag:$flag}
 	   });
 	   $flag == "True" ? $(this).val("False") :  $(this).val("True");
 	});
