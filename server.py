@@ -161,6 +161,7 @@ def internet_connection():
                 disable_internet()
             return "succ"
         except Exception as e:
+            print str(e)
             return str(e)
 
 ###################
