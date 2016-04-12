@@ -136,7 +136,6 @@ def port_fwd():
 
     elif request.method == 'DELETE':
         try:
-            print request.form
             dport = request.form['dport']
             dst = request.form['dst']
             protocol = request.form['protocol'].strip()
@@ -149,9 +148,10 @@ def port_fwd():
             return str(e)
 
 @app.route("/internet_connection", methods=['POST'])
-def toggle_internet():
+def internet_connection():
     if request.method == 'POST':
         try:
+            print request.form
             if request.form['flag'] == "True": 
                 enable_internet()
             elif request.form['flag'] == "False":
