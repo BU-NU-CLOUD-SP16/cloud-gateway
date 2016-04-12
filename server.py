@@ -203,16 +203,14 @@ def enable_internet():
     if not os.path.isfile(internet_tag_file):
         open(internet_tag_file, "a").close()
 
-    total_subnet = ", ".join([net_config["HqCidr"],net_config["VpcCidr"]])
-    cmd = internet_cmd % ('-A', total_subnet)
+    cmd = internet_cmd % ('-A', net_config["HqCidr"])
     return exeute_shell(cmd)
 
 def disable_internet():
     if os.path.isfile(internet_tag_file):
         os.remove(internet_tag_file)
 
-    total_subnet = ",".join([net_config["HqCidr"],net_config["VpcCidr"]])
-    cmd = internet_cmd % ('-D', total_subnet)
+    cmd = internet_cmd % ('-D', net_config["HqCidr"])
     return exeute_shell(cmd)
 
 if __name__ == "__main__":
