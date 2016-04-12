@@ -92,8 +92,8 @@ def dnat():
 
         # execute rule add locally
         try:
-            dnats = get_db().cursor().execute("SELECT * FROM dnats")
-            port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
+            add_dnat(ori_ip, real_ip)
+            add_arp(real_ip)
 
             # write new rules into database
             execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
