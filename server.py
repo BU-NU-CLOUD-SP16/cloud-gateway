@@ -91,10 +91,10 @@ def dnat():
            return rsp.content
 
         # execute rule add locally
-
-        # write new rules into database
         dnats = get_db().cursor().execute("SELECT * FROM dnats")
         port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
+
+        # write new rules into database
         execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
 
         return "success" 
@@ -126,10 +126,8 @@ def port_fwd():
             dport = request.form['dport']
             dst = request.form['dst']
             protocol = request.form['protocol']
-            # print request.form
+        
             add_port_fwd(protocol, dport, dst)
-          
-            #  rule into database
             execute_sql('insert into port_fwds values (?, ?, ?)', (dport, dst, protocol))
             return "success"
 
@@ -142,9 +140,9 @@ def port_fwd():
             dport = request.form['dport']
             dst = request.form['dst']
             protocol = request.form['protocol'].strip()
-            #del_port_fwd(proto, dport, dst)
+            
+            del_port_fwd(protocol, dport, dst)
             execute_sql('DELETE FROM port_fwds WHERE dport=? and dst=? and protocol=?', (dport, dst, protocol,))
-            print "haha1"
             return "success"
 
         except Exception as e:
