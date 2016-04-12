@@ -11,54 +11,53 @@
     <script src="https://code.jquery.com/jquery-2.2.3.min.js"  crossorigin="anonymous"></script>
 
     <script type="text/javascript">
-	 
+   
       $(document).ready(function() {
         // Add button for dnat
-      	$(document).on('click', '.dnats-add', function(event) {
+        $(document).on('click', '.dnats-add', function(event) {
           $row = $(this).closest('tr').add();
           $ori_ip = $row.find("td:nth-child(1)").children("input").val();
           $real_ip = $row.find("td:nth-child(2)").children("input").val();
-    	    var len = $('#dnats').length;
-    	    $('#dnats tbody:last').prepend('<tr><td>'+ $ori_ip +'</td><td>'+ $real_ip +'</td><td><button class="btn btn-danger btn-sm dnats-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
+          var len = $('#dnats').length;
+          $('#dnats tbody:last').prepend('<tr><td>'+ $ori_ip +'</td><td>'+ $real_ip +'</td><td><button class="btn btn-danger btn-sm dnats-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
                 $.ajax({
                      type: "POST",
-                		 url: "/dnat",
+                     url: "/dnat",
                      data: {ori_ip:$ori_ip, real_ip:$real_ip}
                 });
         });
-	
+  
         // Add button for port forwarding
         $(document).on('click', '.port-fwds-add', function(event) {
                   $row = $(this).closest('tr').add();
                   $ori_ip = $row.find("td:nth-child(1)").children("input").val();
                   $real_ip = $row.find("td:nth-child(2)").children("input").val();
-                	$('#port-fwds tbody:last').prepend('<tr><td>'+ $ori_ip +'</td><td>'+ $real_ip +'</td><td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
+                  $('#port-fwds tbody:last').prepend('<tr><td>'+ $ori_ip +'</td><td>'+ $real_ip +'</td><td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
                   $.ajax({
                        type: "POST",
-                    	 url: "/port_fwd",
+                       url: "/port_fwd",
                        data: {ori_ip:$ori_ip, real_ip:$real_ip}
                   });
           });
 
-	$(document).on('click', '.port-fwds-add', function(event) {
-            $row = $(this).closest('tr').add();
-            $dport = $row.find("td:nth-child(1)").children("input").val();
-	    $dst = $row.find("td:nth-child(2)").children("input").val();
-	    
-            <!--$protocol = $row.find("td:nth-child(3)").children("div > button.active").text(); -->
-            $protocol = $("#port-fwd-proto-add-btn-group > button.active").text();
-	    $protocol == "TCP" ? $btn_state = "btn-warning" : $btn_state = "btn-success";
-            
-            $('#port-fwds tbody:last').prepend('<tr><td>'+ $dport +'</td><td>'+ $dst +'</td><td><button type="button" class="btn ' + $btn_state + ' disabled">' + $protocol + '</button></td><td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
-            $.ajax({
-                 type: "POST",
-		 url: "/port_fwd",
-                 data: {dport:$dport, dst:$dst, protocol: $protocol}
-            });
+        $(document).on('click', '.port-fwds-add', function(event) {
+          $row = $(this).closest('tr').add();
+          $dport = $row.find("td:nth-child(1)").children("input").val();
+          $dst = $row.find("td:nth-child(2)").children("input").val();
+
+
+          $protocol = $("#port-fwd-proto-add-btn-group > button.active").text();
+          $protocol == "TCP" ? $btn_state = "btn-warning" : $btn_state = "btn-success";
+
+                  $('#port-fwds tbody:last').prepend('<tr><td>'+ $dport +'</td><td>'+ $dst +'</td><td><button type="button" class="btn ' + $btn_state + ' disabled">' + $protocol + '</button></td><td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
+                  $.ajax({
+                    type: "POST",
+                    url: "/port_fwd",
+                    data: {dport:$dport, dst:$dst, protocol: $protocol}
+                  });
         });
 
-	// Delete button for dnats
-      	// Delete button for dnats
+        // Delete button for dnats
         $(document).on('click', '.dnats-delete',function(event) {
             $row = $(this).closest('tr').remove();
             $ori_ip = $row.find("td:nth-child(1)").text();
@@ -66,7 +65,7 @@
             $.ajax({
                  type: "DELETE",
                  url: "/dnat",
-	             	 data: {ori_ip:$ori_ip, real_ip:$real_ip}
+                  data: {ori_ip:$ori_ip, real_ip:$real_ip}
             });  
         });
 
@@ -83,46 +82,47 @@
             });  
         });
 
-	// Toggle Internet Button
-	$('.toggle-internet').click( function() {
-	   $flag = $(this).attr("value");
-	   $(this).toggleClass('btn-danger').toggleClass('btn-success');
+        // Toggle Internet Button
+        $('.toggle-internet').click( function() {
+           $flag = $(this).attr("value");
+           $(this).toggleClass('btn-danger').toggleClass('btn-success');
            $.ajax({
-		type: "POST",
-		url : "/toggle_internet",
-		data: {flag:$flag}
-	   });
-	   $flag == "True" ? $(this).val("False") :  $(this).val("True");
-	});
-	
-	// Protocol Toggle
-	$('.toggle-protocol').click(function() { 
-	   $(this).siblings().toggleClass("active");
-	   $(this).toggleClass("active");
-	});
+              type: "POST",
+              url : "/internet_connection",
+              data: {flag:$flag}
+           });
+           $flag == "True" ? $(this).val("False") :  $(this).val("True");
+        });
+        
+        // Protocol Toggle
+        $('.toggle-protocol').click(function() { 
+           $(this).siblings().toggleClass("active");
+           $(this).toggleClass("active");
+        });
 
       });      
 
     </script>
     <style>
-	.btn:focus { outline: none !important; }
+  .btn:focus { outline: none !important; }
     </style>
 </head>
 <body>
-    <div class="container">
-	<div class="row">
+  <div class="container">
+  <div class="row">
         <h2 class="col-lg-6"><span class="glyphicon glyphicon-cloud"></span> Cloud Gateway <label class="label label-info">iptables</label></h2>
-	<h2 class="col-lg-6">
 
-		<button value={{ internet_state }} class="btn btn-lg
-		{% if internet_state == "True" %}
-			{{ "btn-danger" }}
-		{% elif internet_state == "False" %}
-			{{ "btn-success" }}
-		{% endif %}
-		toggle-internet pull-right">Internet</button>
-	</h2> 
-	</div>
+  <h2 class="col-lg-6">
+    <button value={{ internet_state }} class="btn btn-lg
+    {% if internet_state == "True" %}
+      {{ "btn-danger" }}
+    {% elif internet_state == "False" %}
+      {{ "btn-success" }}
+    {% endif %}
+    toggle-internet pull-right">Internet</button>
+  </h2> 
+
+  </div>
         <div class="row">
             <div class="col-md-5 col-lg-5">
                 <h3><span class="glyphicon glyphicon-list-alt"></span> Destination NATs</h3>    
@@ -180,14 +180,14 @@
                                    <!-- <td>{{ row.index }}</td>  -->
                                    <td>{{ row[0] }}</td> 
                                    <td>{{ row[1] }}</td>
-				   <td>
-					<button type="button" class="btn 
-					{% if row[2] == "TCP" %}
-						{{ "btn-warning" }}
-					{% elif row[2] == "UDP" %}
-						{{ "btn-success" }}
-					{% endif %} disabled btn-sm"> {{ row[2] }} </button> 
-				   </td>
+           <td>
+          <button type="button" class="btn 
+          {% if row[2] == "TCP" %}
+            {{ "btn-warning" }}
+          {% elif row[2] == "UDP" %}
+            {{ "btn-success" }}
+          {% endif %} disabled btn-sm"> {{ row[2] }} </button> 
+           </td>
                                    <td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td>  
                                </tr>
                                {% endfor %}               
@@ -195,12 +195,12 @@
                                    <!-- <td>2</td> -->
                                        <td><input type="text" value="80" name="dport" class="form-control" placeholder="80"></input></td> 
                                        <td><input type="text" value="10.0.1.24" name="dst" class="form-control" placeholder="0.0.0.0"></input></td> 
-				       <td>
-					<div class="btn-group btn-group-sm" id="port-fwd-proto-add-btn-group" role="group">
-						<button type="button" class="btn btn-warning active toggle-protocol">TCP</button>
-						<button type="button" class="btn btn-success toggle-protocol">UDP</button>
-					</div>
-				       </td>
+               <td>
+          <div class="btn-group btn-group-sm" id="port-fwd-proto-add-btn-group" role="group">
+            <button type="button" class="btn btn-warning active toggle-protocol">TCP</button>
+            <button type="button" class="btn btn-success toggle-protocol">UDP</button>
+          </div>
+               </td>
                                        <td><button class="btn btn-primary btn-sm port-fwds-add" type="submit"><span class="glyphicon glyphicon-plus"></span></button></td> 
                                </tr>         
                             </tbody>
@@ -210,15 +210,15 @@
     </div>
 
     <footer class="footer" style="position:absolute;bottom:0;background-color:#f5f5f5">
-	<div class="container">
-	<ul class="nav nav-pills pull-right">
-		<li><a href="">About</a></li>
-		<li><a href="">Manual</a></li>
-		<li><a href="">Git</a></li>
-		<li><a href="">License</a></li>
-	</ul>
-	</div>
-    </footer>	
+  <div class="container">
+  <ul class="nav nav-pills pull-right">
+    <li><a href="">About</a></li>
+    <li><a href="">Manual</a></li>
+    <li><a href="">Git</a></li>
+    <li><a href="">License</a></li>
+  </ul>
+  </div>
+    </footer>  
 </body>
 
 </html>

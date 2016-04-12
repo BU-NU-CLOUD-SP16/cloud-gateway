@@ -154,9 +154,9 @@ def port_fwd():
 def toggle_internet():
     if request.method == 'PUT':
         try:
-            if request.form['state'] == "On": 
+            if request.form['flag'] == "True": 
                 enable_internet()
-            elif request.form['state'] == "Off":
+            elif request.form['flag'] == "False":
                 disable_internet()
             return "succ"
         except Exception as e:
@@ -186,18 +186,17 @@ def del_arp(ip):
     return exeute_shell("arp -d " + ip)
 
 def add_port_fwd(proto, dport, dst):
-    cmd = port_fwd_cmd % ("-A", proto,"10.0.1.122", dport, dst)
-    return subprocess.check_output(cmd, shell = True)
+    cmd = port_fwd_cmd % ("-A", proto, net_config["HqPrivateIp"], dport, dst)
+    return exeute_shell(cmd)
 
 def del_port_fwd(proto, dport, dst):
-    cmd = port_fwd_cmd % ("-D", proto,"10.0.1.122", dport, dst)
-    return subprocess.check_output(cmd, shell = True)
+    cmd = port_fwd_cmd % ("-D", proto, net_config["HqPrivateIp"], dport, dst)
+    return exeute_shell(cmd)
 
 def internet_on():
     return os.path.isfile(internet_tag_file)
 
 def enable_internet():
-    print "INTERNET ENABLED"
     # create a file to indicate the state of internet connection
     if not os.path.isfile(internet_tag_file):
         open(internet_tag_file, "a").close()
@@ -207,7 +206,6 @@ def enable_internet():
     return exeute_shell(cmd)
 
 def disable_internet():
-    print "INTERNET DISABLED"
     if os.path.isfile(internet_tag_file):
         os.remove(internet_tag_file)
 
