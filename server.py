@@ -141,7 +141,7 @@ def port_fwd():
             print request.form
             dport = request.form['dport']
             dst = request.form['dst']
-            protocol = request.form['protocol']
+            protocol = request.form['protocol'].strip()
             #del_port_fwd(proto, dport, dst)
             execute_sql('DELETE FROM port_fwds WHERE dport=? and dst=? and protocol=?', (dport, dst, protocol,))
             print "haha1"

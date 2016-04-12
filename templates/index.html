@@ -63,7 +63,7 @@
             $row = $(this).closest('tr').remove();
             $dport = $row.find("td:nth-child(1)").text();
             $dst = $row.find("td:nth-child(2)").text();
-            $protocol = $("td:nth-child(3)").children("button").text();
+            $protocol = $row.find("td:nth-child(3) > button.disabled").text();
             $.ajax({
                  type: "DELETE",
                  url: "/port_fwd",
@@ -169,12 +169,12 @@
                                    <td>{{ row[0] }}</td> 
                                    <td>{{ row[1] }}</td>
 				   <td>
-					<span class="label 
+					<button type="button" class="btn 
 					{% if row[2] == "TCP" %}
-						{{ "label-warning" }}
+						{{ "btn-warning" }}
 					{% elif row[2] == "UDP" %}
-						{{ "label-success" }}
-					{% endif %} "> {{ row[2] }} </span> 
+						{{ "btn-success" }}
+					{% endif %} disabled btn-sm"> {{ row[2] }} </button> 
 				   </td>
                                    <td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td>  
                                </tr>
