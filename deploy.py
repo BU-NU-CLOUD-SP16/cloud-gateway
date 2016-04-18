@@ -53,6 +53,7 @@ def add_connection(left_id,left,left_subnet,
                     + " | sudo tee --append /etc/ipsec.secrets",shell=True)
     subprocess.call("./bin/ipsec_restart",shell=True)
 
+
 def create_stack(stack_name, template, wait = True):
     """
     Params:
@@ -67,7 +68,7 @@ def create_stack(stack_name, template, wait = True):
     """
     client = boto3.client('cloudformation')
     try:
-        response = client.create_stack(StackName = stack_name, TemplateBody = template)
+        response = client.create_stack(StackName=stack_name, TemplateBody=template)
     except Exception as exception:
         print str(exception)
         return
@@ -76,13 +77,14 @@ def create_stack(stack_name, template, wait = True):
         return response["StackID"]
 
     while True:
-        response = client.describe_stacks(StackName = stack_name)
+        response = client.describe_stacks(StackName=stack_name)
         status = response['Stacks'][0]['StackStatus']  
         print status
         if status != "CREATE_IN_PROGRESS":
            break
         time.sleep(5)
     return response["Stacks"][0]["StackId"]
+
 
 def describe_stack(stack_name):
     """
@@ -94,11 +96,12 @@ def describe_stack(stack_name):
     mapped to hash that store stack description output value
     """
     client = boto3.client('cloudformation')
-    response = client.describe_stacks(StackName = stack_name)['Stacks'][0]
+    response = client.describe_stacks(StackName=stack_name)['Stacks'][0]
     outputs = {}
     for output in response["Outputs"]:
         outputs[output["OutputKey"]] = output["OutputValue"]
     return {"status":response['StackStatus'], "outputs" : outputs }
+
 
 def delete_stack(stack_name):
     """
@@ -109,19 +112,87 @@ def delete_stack(stack_name):
     The original response from boto3 API
     """
     client = boto3.client('cloudformation')
-    response = client.delete_stack(StackName = stack_name)
+    response = client.delete_stack(StackName=stack_name)
     return response
 
-def deploy_vpc(stack_name = "vpc"):
+
+def create_image(vpc_stack="vpc"):
+    """
+    Params:
+    vpc_stack -- {string} The VPC stack where this a temprorary instance will
+    be created
+    ----------------------
+    Outputs:
+    The image id with Aws tools, StrongSwan installed and repo cloned.
+    """
+    vpc_desc = describe_stack(vpc_stack)["outputs"]
+
+    # create temporary vcg 
+    template = open("./StackTemplates/image.template").read()
+    template = (template) % (config['KeyPair'], vpc_desc["VpcId"], 
+                             vpc_desc["PublicSubnetId"],config['VcgIp'],
+                             config['InstanceType'], config['ImageId'], 
+                             vpc_desc["SecurityGroup"]) 
+
+    
+    # createan instance with all libs installed
+    stack =  create_stack("TempStack", template)
+    instance_id = describe_stack("TempStack")["InstanceId"]
+
+    client = boto3.client('ec2')
+    rsp = client.create_image(InstanceId=instance_id,
+                                Name='string',
+                                Description='string')
+
+    # create an image of that instance and wait until it's available
+    image_id = rsp['ImageId']
+    while 1:
+        rsp = client.describe_images(ImageIds=[image_id])
+        print ("Image %s state:") % (image_id), rsp['Images'][0]['State'] 
+        if rsp['Images'][0]['State']  == 'available':
+            print "Image created, delete temp instance"
+            break
+
+    # delete temporary instance
+    delete_stack("TempStack")
+
+    return image_id
+
+
+def delete_image(image_id):
+    """
+    Params:
+    image_id -- {string} The AMI image-to delete
+    ----------------------
+    Outputs:
+    True if operation success, otherwise return error message
+    """
+    try:
+        client = boto3.client('ec2')
+        rsp = client.describe_images(ImageIds=[image_id])
+        snapshot_id = rsp['BlockDeviceMappings']['Ebs']['SnapshotId']
+
+        # deregister image
+        client.deregister_image(ImageId=image_id)
+
+        # delete snapshot
+        client.delete_snapshot(SnapshotId=snapshot_id)
+        return True
+    except Exception as e:
+        return str(e)
+
+
+def deploy_vpc(stack_name="vpc"):
     """
     Params:
         None
     ----------------------
     Outputs:
-    vpc -- {string} ID of ceated VPC
-    public_subnet -- {string} ID of ceated public subnet
-    private_subnet -- {string} ID of ceated private subnet
-    private_route_table -- {string} ID of ceated route table for private subnet
+        vpc -- {string} ID of ceated VPC
+        public_subnet -- {string} ID of ceated public subnet
+        private_subnet -- {string} ID of ceated private subnet
+        private_route_table -- {string} ID of ceated route table for private subnet
+        image_id -- {string} The id of a configured image
     """
     # create VPC 
     template = open("./StackTemplates/vpc.template").read()
@@ -132,10 +203,15 @@ def deploy_vpc(stack_name = "vpc"):
     stack =  create_stack(stack_name, template)
     desc = describe_stack(stack_name)["outputs"]
 
-    return desc["VpcId"], desc["PublicSubnetId"], \
-            desc["PrivateSubnetId"], desc["PrivateRouteTableId"]
+    print "creating pre configured image..."
+    image_id = create_image(desc["VpcId"])
+    print ("Image \'%s\' created") % (image_id)
 
-def deploy_vcg(vcg_ip, vpc_stack = "vpc", stack_name = "vcg"):
+    return desc["VpcId"], desc["PublicSubnetId"], \
+            desc["PrivateSubnetId"], desc["PrivateRouteTableId"], image_id
+
+
+def deploy_vcg(image_id, vpc_stack="vpc", stack_name="vcg"):
     """
     Params:
     vpc_stack -- {string} The stack name of VPC to where this VCG is added
@@ -167,8 +243,9 @@ def deploy_vcg(vcg_ip, vpc_stack = "vpc", stack_name = "vcg"):
     template = open("./StackTemplates/vcg.template").read()
     template = (template) % (config['KeyPair'], vpc_desc["VpcId"], 
                              vpc_desc["PublicSubnetId"], config['VpcCidr'], 
-                             vcg_ip, eip_ip, eip_id, config['HqPublicIp'], psk, 
-                             config['InstanceType'], config['ImageId'], 
+                             config['VcgIp'], eip_ip, eip_id, 
+                             config['HqPublicIp'], psk, 
+                             config['InstanceType'], image_id, 
                              vpc_desc["SecurityGroup"])
     create_stack(stack_name, template)
 
@@ -176,25 +253,24 @@ def deploy_vcg(vcg_ip, vpc_stack = "vpc", stack_name = "vcg"):
     vcg_id = describe_stack(stack_name)["outputs"]["VcgId"]
 
     # Associate public address
-    rsp = ec2_client.associate_address(InstanceId = vcg_id,
-                                        AllocationId = eip_id)
+    rsp = ec2_client.associate_address(InstanceId=vcg_id,
+                                        AllocationId=eip_id)
     print rsp
     # Route all traffic in private subnet to new vcg
-    rsp = ec2_client.create_route( RouteTableId = vpc_desc["PrivateRouteTableId"],
-                                    DestinationCidrBlock = '0.0.0.0/0',
-                                    InstanceId = vcg_id)
+    rsp = ec2_client.create_route( RouteTableId=vpc_desc["PrivateRouteTableId"],
+                                    DestinationCidrBlock='0.0.0.0/0',
+                                    InstanceId=vcg_id)
     print rsp
 
     return vcg_id
 
-def test():
-    #deploy_vpc()
-    deploy_vcg(config['VcgIp'])
-#    delete_stack('eip')
 
- #   delete_stack('vpc')
-#    delete_stack('vcg')
+def test():
+    _1, _2, _3, _4, image_id = deploy_vpc()
+    deploy_vcg(image_id)
 
 if __name__ == "__main__":
     test()
+
+       
 
