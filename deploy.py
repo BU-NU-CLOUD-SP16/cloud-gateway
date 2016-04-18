@@ -152,30 +152,38 @@ def deploy_vcg(vcg_ip, vpc_stack = "vpc", stack_name = "vcg"):
     print vpc_desc["VpcId"]
 
     # create eip
-    template = open("./StackTemplates/eip.template").read()
-    template = (template) % (vpc_desc["VpcId"]) 
-
-    create_stack("eip", template)
-
-    desc = describe_stack("eip")["outputs"]
-    eip_ip, eip_id = desc["EipIp"], desc["EipId"]
+    ec2_client = boto3.client('ec2')
+    eip_rsp = ec2_client.allocate_address(Domain='vpc')
+    eip_ip = eip_rsp['PublicIp']
+    eip_id = eip_rsp['AllocationId']
 
     # Add connection in this machine and start tunnel
     # So that when IPsec is start in the remote site will have responde
     add_connection(config["HqPublicIp"], config["HqPrivateIp"], "0.0.0.0/0",
                     eip_ip, eip_ip, config["VpcCidr"], psk)
     
-    # create vcg 
-    vpc_desc = describe_stack(vpc_stack)["outputs"]
+    # Construct template and create VCG
     template = open("./StackTemplates/vcg.template").read()
-    template = (template) % (config['KeyPair'], vpc_desc["VpcId"], vpc_desc["PublicSubnetId"],
-                            config['VpcCidr'], vpc_desc["PrivateRouteTableId"], 
-                             vcg_ip, eip_ip, eip_id, config['HqPublicIp'], 
-                             psk, config['InstanceType'], config['ImageId'], vpc_desc["SecurityGroup"])
-
+    template = (template) % (config['KeyPair'], vpc_desc["VpcId"], 
+                             vpc_desc["PublicSubnetId"], config['VpcCidr'], 
+                             vcg_ip, eip_ip, eip_id, config['HqPublicIp'], psk, 
+                             config['InstanceType'], config['ImageId'], 
+                             vpc_desc["SecurityGroup"])
     create_stack(stack_name, template)
 
-    return describe_stack("vcg")["outputs"]["VcgId"]
+    # Get vcg id
+    vcg_id = describe_stack(stack_name)["outputs"]["VcgId"]
+
+    # Associate public address
+    rsp = ec2_client.associate_address(InstanceId = vcg_ip,
+                                        AllocationId = eip_id)
+
+    # Route all traffic in private subnet to new vcg
+    rsp = ec2_client.create_route( RouteTableId = vpc_desc["PrivateRouteTableId"],
+                                    DestinationCidrBlock = '0.0.0.0/0',
+                                    InstanceId = vpc_desc["VpcId"])
+
+    return vcg_id
 
 def test():
     #deploy_vpc()

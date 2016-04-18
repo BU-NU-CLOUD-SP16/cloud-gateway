@@ -25,11 +25,6 @@
       "Default" : "%s"
     },
 
-    "PrivateRouteID" : {
-      "Type" : "String",
-      "Default" : "%s"
-    },
-
     "PrivateIP" : {
       "Type" : "String",
       "Default" : "%s"
@@ -200,23 +195,6 @@
             "         --region ", { "Ref" : "AWS::Region" }, "\n",
             "sudo ipsec restart\n"
          ]]}}
-      }
-    },
-
-    "AssociateEIP" : {
-       "Type": "AWS::EC2::EIPAssociation",
-       "Properties": {
-          "AllocationId": { "Ref" : "EipId" },
-          "InstanceId": { "Ref" : "Vcg" }
-       }
-    },
-
-    "vcgRoute" : {
-      "Type" : "AWS::EC2::Route",
-      "Properties" : {
-        "RouteTableId" : { "Ref" : "PrivateRouteID" },
-        "DestinationCidrBlock" : "0.0.0.0/0",
-        "InstanceId" : { "Ref" : "Vcg" }
       }
     }
   },
