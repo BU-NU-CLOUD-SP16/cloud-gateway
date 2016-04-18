@@ -29,18 +29,6 @@
   
         // Add button for port forwarding
         $(document).on('click', '.port-fwds-add', function(event) {
-                  $row = $(this).closest('tr').add();
-                  $ori_ip = $row.find("td:nth-child(1)").children("input").val();
-                  $real_ip = $row.find("td:nth-child(2)").children("input").val();
-                  $('#port-fwds tbody:last').prepend('<tr><td>'+ $ori_ip +'</td><td>'+ $real_ip +'</td><td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
-                  $.ajax({
-                       type: "POST",
-                       url: "/port_fwd",
-                       data: {ori_ip:$ori_ip, real_ip:$real_ip}
-                  });
-          });
-
-        $(document).on('click', '.port-fwds-add', function(event) {
           $row = $(this).closest('tr').add();
           $dport = $row.find("td:nth-child(1)").children("input").val();
           $dst = $row.find("td:nth-child(2)").children("input").val();
@@ -49,7 +37,7 @@
           $protocol = $("#port-fwd-proto-add-btn-group > button.active").text();
           $protocol == "TCP" ? $btn_state = "btn-warning" : $btn_state = "btn-success";
 
-                  $('#port-fwds tbody:last').prepend('<tr><td>'+ $dport +'</td><td>'+ $dst +'</td><td><button type="button" class="btn ' + $btn_state + ' disabled">' + $protocol + '</button></td><td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
+                  $('#port-fwds tbody:last').prepend('<tr><td>'+ $dport +'</td><td>'+ $dst +'</td><td><button type="button" class="btn btn-sm ' + $btn_state + ' disabled">' + $protocol + '</button></td><td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
                   $.ajax({
                     type: "POST",
                     url: "/port_fwd",
@@ -110,9 +98,8 @@
 <body>
   <div class="container">
   <div class="row">
-        <h2 class="col-lg-6"><span class="glyphicon glyphicon-cloud"></span> Cloud Gateway <label class="label label-info">iptables</label></h2>
+        <h2 class="col-lg-12 col-md-12"><span class="glyphicon glyphicon-cloud"></span> Cloud Gateway <label class="label label-info">iptables</label>
 
-  <h2 class="col-lg-6">
     <button value={{ internet_state }} class="btn btn-lg
     {% if internet_state == "True" %}
       {{ "btn-danger" }}
