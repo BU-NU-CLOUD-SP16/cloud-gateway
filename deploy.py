@@ -1,9 +1,3 @@
-"""
-TODO:
-    1. Add Change deploy_vcp.vcg -> create_vpc/vcg and dump 
-       all necessary infomation to yaml file
-    2. Add delete_vpc/vcg method to delete resource created by 1 for scale down
-"""
 import yaml
 import boto3
 import subprocess
@@ -74,6 +68,14 @@ def add_connection(left_id,left,left_subnet,
     subprocess.call("./bin/ipsec_restart",shell=True)
 
 
+def del_connecion(left, right):
+    """
+    Todo:
+    Better file sturctur to enable clean remove connection configuration
+    """
+    return
+
+
 def create_stack(stack_name, template, wait = True):
     """
     Params:
@@ -120,7 +122,7 @@ def describe_stack(stack_name):
     outputs = {}
     for output in response["Outputs"]:
         outputs[output["OutputKey"]] = output["OutputValue"]
-    return {"status":response['StackStatus'], "outputs" : outputs }
+    return {"Status":response['StackStatus'], "Outputs" : outputs }
 
 
 def delete_stack(stack_name):
@@ -145,7 +147,8 @@ def create_image(vpc_stack="vpc"):
     Outputs:
     The image id with Aws tools, StrongSwan installed and repo cloned.
     """
-    vpc_desc = describe_stack(vpc_stack)["outputs"]
+    ec2_client = boto3.client('ec2')
+    vpc_desc = describe_stack(vpc_stack)["Outputs"]
 
     # create temporary vcg 
     template = open("./StackTemplates/image.template").read()
@@ -156,14 +159,19 @@ def create_image(vpc_stack="vpc"):
     
     # createan instance with all libs installed
     create_stack("TempStack", template)
-    instance_id = describe_stack("TempStack")["outputs"]["InstanceId"]
+    instance_id = describe_stack("TempStack")["Outputs"]["InstanceId"]
 
-    ###################
-    # CHECK INSTANCE STATUS HERE,
-    # ONLY CREATE IMAGE AFTER ALL IS OK
-    ###################
+    # wait until this instance is fully initialized
+    while 1:
+        rsp = ec2_client.describe_instance_status(InstanceIds=[instance_id])
+        rsp = rsp["InstanceStatuses"][0]
+        print rsp
+        if rsp["InstanceState"]["Name"] != "running" and 
+            rsp["SystemStatus"]["Status"] != "ok":
+            print "Instace Initialized."
+            break
 
-    client = boto3.client('ec2')
+    print "Start creating AMI image..."
     rsp = client.create_image(InstanceId=instance_id,
                                Name='string',
                                Description='string')
@@ -171,14 +179,14 @@ def create_image(vpc_stack="vpc"):
     # create an image of that instance and wait until it's available
     image_id = rsp['ImageId']
     while 1:
-        rsp = client.describe_images(ImageIds=[image_id])
+        rsp = ec2_client.describe_images(ImageIds=[image_id])
         if rsp['Images'][0]['State']  == 'available':
-            print "Image created, delete temp instance"
             break
         print ("Image %s state:") % (image_id), rsp['Images'][0]['State'] 
-        time.sleep(5)
+        time.sleep(10)
 
     # delete temporary instance
+    print "Image created, delete temp instance."
     delete_stack("TempStack")
 
     return image_id
@@ -228,7 +236,7 @@ def deploy_vpc(stack_name="vpc"):
                             config["PublicCidr"], 
                             config["PrivateCidr"]) 
     stack =  create_stack(stack_name, template)
-    desc = describe_stack(stack_name)["outputs"]
+    desc = describe_stack(stack_name)["Outputs"]
 
     # Create AMI of a configured instance in that VPC 
     print "Creating pre configured image..."
@@ -287,15 +295,15 @@ def deploy_vcg(vpc_stack="vpc", stack_name="vcg"):
                              vpc_desc["SecurityGroup"])
     create_stack(stack_name, template)
     
-    vcg_id = describe_stack(stack_name)["outputs"]["VcgId"]
+    vcg_id = describe_stack(stack_name)["Outputs"]["VcgId"]
 
     # Associate VCG with EIP
     ec2_client.associate_address(InstanceId=vcg_id, AllocationId=eip_id)
 
     # Route all traffic in private subnet to new vcg
-    ec2_client.create_route( RouteTableId=vpc_desc["PrivateRouteTableId"],
-                                    DestinationCidrBlock='0.0.0.0/0',
-                                    InstanceId=vcg_id)
+    ec2_client.create_route(RouteTableId=vpc_desc["PrivateRouteTableId"],
+                            DestinationCidrBlock='0.0.0.0/0',
+                            InstanceId=vcg_id)
 
     desc = {"ElasticAddressIp": eip_ip,
             "ElasticAddressId": eip_id,
@@ -308,17 +316,16 @@ def deploy_vcg(vpc_stack="vpc", stack_name="vcg"):
     return desc
 
 
-def delete_vcg(stack_name):
+def delete_vcg(stack_name="vcg"):
     # delete instance
     ec2_client = boto3.client("ec2")
-    delete_stack(StackName)
+    delete_stack(stack_name)
 
     # delete elastic ip and private route
     desc = load_stack(stack_name)
     ec2_client.delete_route(RouteTableId=desc["PrivateRouteTableId"],
                             DestinationCidrBlock="0.0.0.0/0")
     ec2_client.release_address(AllocationId=desc["ElasticAddressId"])
-
 
 
 def test():
