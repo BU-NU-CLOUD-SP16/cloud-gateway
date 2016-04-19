@@ -172,7 +172,7 @@ def create_image(vpc_stack="vpc"):
             break
 
     print "Start creating AMI image..."
-    rsp = client.create_image(InstanceId=instance_id,
+    rsp = ec2_client.create_image(InstanceId=instance_id,
                                Name='string',
                                Description='string')
 
