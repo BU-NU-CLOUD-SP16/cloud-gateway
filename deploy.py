@@ -242,6 +242,11 @@ def deploy_vpc(stack_name="vpc"):
     return desc
 
 
+def delete_vpc(stack_name="vpc"):
+    delete_stack(stack_name)
+    delete_image(load_stack(stack_name)["ImageId"])
+
+
 def deploy_vcg(vpc_stack="vpc", stack_name="vcg"):
     """
     Params:
@@ -294,12 +299,26 @@ def deploy_vcg(vpc_stack="vpc", stack_name="vcg"):
 
     desc = {"ElasticAddressIp": eip_ip,
             "ElasticAddressId": eip_id,
+            "PrivateRouteTableId": vpc_desc["PrivateRouteTableId"],
             "VcgId": vcg_id}
 
     # Store info of VCG related resources into yaml
     dump_yaml(stack_name, desc)
 
     return desc
+
+
+def delete_vcg(stack_name):
+    # delete instance
+    ec2_client = boto3.client("ec2")
+    delete_stack(StackName)
+
+    # delete elastic ip and private route
+    desc = load_stack(stack_name)
+    ec2_client.delete_route(RouteTableId=desc["PrivateRouteTableId"],
+                            DestinationCidrBlock="0.0.0.0/0")
+    ec2_client.release_address(AllocationId=desc["ElasticAddressId"])
+
 
 
 def test():
