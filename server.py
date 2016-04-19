@@ -13,6 +13,9 @@ port_fwd_cmd = "sudo iptables -t nat %s PREROUTING -p %s -d %s --dport %s -j DNA
 internet_cmd = "sudo iptables -t nat %s POSTROUTING ! -d %d -j MASQUERADE"
 internet_tag_file = "./internet_conn_on"
 
+internet_status = "OFF"
+
+
 # Override default database setting
 net_config = yaml.load(open('config.yaml').read())
 app.config.update(dict(
@@ -71,7 +74,7 @@ def index():
     # return all existing port forwarding rules
     port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
 
-    return render_template("index.html", dnats=dnats, port_fwds=port_fwds, internet_state=str(internet_on()))
+    return render_template("index.html", dnats=dnats, port_fwds=port_fwds, internet_state=internet_status)
 
 
 @app.route("/dnat", methods=['GET', 'POST', 'DELETE'])
@@ -138,13 +141,11 @@ def port_fwd():
 
     elif request.method == 'DELETE':
         try:
-            print request.form
             dport = request.form['dport']
             dst = request.form['dst']
             protocol = request.form['protocol'].strip()
             #del_port_fwd(proto, dport, dst)
             execute_sql('DELETE FROM port_fwds WHERE dport=? and dst=? and protocol=?', (dport, dst, protocol,))
-            print "haha1"
             return "success"
 
         except Exception as e:
@@ -154,9 +155,9 @@ def port_fwd():
 def toggle_internet():
     if request.method == 'POST':
         try:
-            if request.form['flag'] == "True": 
+            if request.form['flag'] == "OFF": 
                 enable_internet()
-            elif request.form['flag'] == "False":
+            elif request.form['flag'] == "ON":
                 disable_internet()
             return "succ"
         except Exception as e:
@@ -193,22 +194,16 @@ def del_port_fwd(proto, dport, dst):
     cmd = port_fwd_cmd % ("-D", proto, net_config["HqPrivateIp"], dport, dst)
     return exeute_shell(cmd)
 
-def internet_on():
-    return os.path.isfile(internet_tag_file)
-
 def enable_internet():
-    # create a file to indicate the state of internet connection
-    if not os.path.isfile(internet_tag_file):
-        open(internet_tag_file, "a").close()
-
+    global internet_status
+    internet_status = "ON"
     total_subnet = ",".join([net_config["HqCidr"],net_config["VpcCidr"]])
     cmd = internet_cmd % ('-A', total_subnet)
     return exeute_shell(cmd)
 
 def disable_internet():
-    if os.path.isfile(internet_tag_file):
-        os.remove(internet_tag_file)
-
+    global internet_status
+    internet_status = "OFF"
     total_subnet = ",".join([net_config["HqCidr"],net_config["VpcCidr"]])
     cmd = internet_cmd % ('-D', total_subnet)
     return exeute_shell(cmd)
