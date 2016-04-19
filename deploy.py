@@ -12,6 +12,7 @@ import time
 import os
 import json
 
+# CONSTANTS 
 conn_template  = """
 conn %s-%s
  auto=start
@@ -25,6 +26,19 @@ conn %s-%s
 secret_template = "%s %s : PSK \\\"%s\\\" \\\n"
 
 config = yaml.load(open('config.yaml').read())
+
+stack_info_path = "./others/stacks_info/"
+
+def dump_stack(stack_name, desc):
+    path = os.path.join([stack_info_path, stack_name])
+    if not os.path.isdir(path):
+        os.makedirs(path)
+    with open(path, "w") as dump_file:
+        dump_file.write(yaml.dump(desc))
+
+def load_stack(stack_name):
+    path = os.path.join([stack_info_path, stack_name])
+    return yaml.load(open(path, 'r').read())
 
 def get_ubuntu_amiid():
     """
@@ -199,11 +213,13 @@ def deploy_vpc(stack_name="vpc"):
         None
     ----------------------
     Outputs:
-        vpc -- {string} ID of ceated VPC
-        public_subnet -- {string} ID of ceated public subnet
-        private_subnet -- {string} ID of ceated private subnet
-        private_route_table -- {string} ID of ceated route table for private subnet
-        image_id -- {string} The id of a configured image
+        desc -- {dict} A dictionary contains the output of vpc description
+        and the image of preconfigured image, contains following info
+           * vpc: ID of ceated VPC
+           * public_subnet: ID of ceated public subnet
+           * private_subnet: ID of ceated private subnet
+           * private_route_table: ID of ceated route table for private subnet
+           * ImageId: The id of a configured image
     """
     # create VPC 
     print "Deploying VPC and network..."
@@ -217,13 +233,16 @@ def deploy_vpc(stack_name="vpc"):
     # Create AMI of a configured instance in that VPC 
     print "Creating pre configured image..."
     image_id = create_image(stack_name)
+    desc["ImageId"] = image_id
     print ("Image \'%s\' created") % (image_id)
 
-    return desc["VpcId"], desc["PublicSubnetId"], \
-            desc["PrivateSubnetId"], desc["PrivateRouteTableId"], image_id
+    # store vpc information into temp file
+    dump_stack(stack_name, desc)
+
+    return desc
 
 
-def deploy_vcg(image_id, vpc_stack="vpc", stack_name="vcg"):
+def deploy_vcg(vpc_stack="vpc", stack_name="vcg"):
     """
     Params:
     vpc_stack -- {string} The stack name of VPC to where this VCG is added
@@ -237,7 +256,8 @@ def deploy_vcg(image_id, vpc_stack="vpc", stack_name="vcg"):
     psk = uuid.uuid4().hex
 
     # get id informatin from pre-create VPC stack
-    vpc_desc = describe_stack(vpc_stack)["outputs"]
+    # vpc_desc = describe_stack(vpc_stack)["outputs"]
+    vpc_desc = load_stack(vpc_stack, desc)
 
     # create eip
     print ("Allocating Elastic IP to %s") % (vpc_desc["VpcId"])
@@ -258,26 +278,33 @@ def deploy_vcg(image_id, vpc_stack="vpc", stack_name="vcg"):
                              vpc_desc["PublicSubnetId"], config['VpcCidr'], 
                              config['VcgIp'], eip_ip, eip_id, 
                              config['HqPublicIp'], psk, 
-                             config['InstanceType'], image_id, 
+                             config['InstanceType'], vpc_desc["ImageId"], 
                              vpc_desc["SecurityGroup"])
     create_stack(stack_name, template)
     
     vcg_id = describe_stack(stack_name)["outputs"]["VcgId"]
 
     # Associate VCG with EIP
-    rsp = ec2_client.associate_address(InstanceId=vcg_id, AllocationId=eip_id)
+    ec2_client.associate_address(InstanceId=vcg_id, AllocationId=eip_id)
 
     # Route all traffic in private subnet to new vcg
-    rsp = ec2_client.create_route( RouteTableId=vpc_desc["PrivateRouteTableId"],
+    ec2_client.create_route( RouteTableId=vpc_desc["PrivateRouteTableId"],
                                     DestinationCidrBlock='0.0.0.0/0',
                                     InstanceId=vcg_id)
 
-    return vcg_id, eip_ip, eip_id
+    desc = {"ElasticAddressIp": eip_ip,
+            "ElasticAddressId": eip_id,
+            "VcgId": vcg_id}
+
+    # Store info of VCG related resources into yaml
+    dump_yaml(stack_name, desc)
+
+    return desc
 
 
 def test():
-    _1, _2, _3, _4, image_id = deploy_vpc()
-    deploy_vcg(image)
+    image_id = deploy_vpc()["ImageId"]
+    deploy_vcg()
 
 if __name__ == "__main__":
     test()
