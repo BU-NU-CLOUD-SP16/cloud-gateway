@@ -1,0 +1,2 @@
+{ImageId: ami-78392712, PrivateRouteTableId: rtb-af5ec7c8, PrivateSubnetId: subnet-b487d289,
+  PublicSubnetId: subnet-b187d28c, SecurityGroup: sg-3f696747, VpcId: vpc-26f81e41}

@@ -170,6 +170,7 @@ def create_image(vpc_stack="vpc"):
             rsp["SystemStatus"]["Status"] == "ok":
             print "Instace Initialized."
             break
+        time.sleep(5)
 
     print "Start creating AMI image..."
     rsp = ec2_client.create_image(InstanceId=instance_id,
@@ -269,9 +270,9 @@ def deploy_vcg(vpc_stack="vpc", stack_name="vcg"):
     psk = uuid.uuid4().hex
 
     # get id informatin from pre-create VPC stack
-    # vpc_desc = describe_stack(vpc_stack)["outputs"]
+    #vpc_desc = describe_stack(vpc_stack)["Outputs"]
     vpc_desc = load_stack(vpc_stack)
-
+    
     # create eip
     print ("Allocating Elastic IP to %s") % (vpc_desc["VpcId"])
     ec2_client = boto3.client('ec2')
@@ -329,11 +330,10 @@ def delete_vcg(stack_name="vcg"):
 
 
 def test():
-    deploy_vpc()
-    #deploy_vcg()
-
-    # delete_vpc()
-    # delete_vcg()
+#    deploy_vpc()
+#    deploy_vcg()
+     delete_vcg()
+     delete_vpc()
 
 if __name__ == "__main__":
     test()
