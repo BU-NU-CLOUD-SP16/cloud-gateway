@@ -1,3 +1,9 @@
+"""
+TODO:
+    1. Add Change deploy_vcp.vcg -> create_vpc/vcg and dump 
+       all necessary infomation to yaml file
+    2. Add delete_vpc/vcg method to delete resource created by 1 for scale down
+"""
 import yaml
 import boto3
 import subprocess
@@ -133,11 +139,15 @@ def create_image(vpc_stack="vpc"):
                              vpc_desc["PublicSubnetId"],config['VcgIp'],
                              config['InstanceType'], config['ImageId'], 
                              vpc_desc["SecurityGroup"]) 
-
     
     # createan instance with all libs installed
     create_stack("TempStack", template)
     instance_id = describe_stack("TempStack")["outputs"]["InstanceId"]
+
+    ###################
+    # CHECK INSTANCE STATUS HERE,
+    # ONLY CREATE IMAGE AFTER ALL IS OK
+    ###################
 
     client = boto3.client('ec2')
     rsp = client.create_image(InstanceId=instance_id,
@@ -148,10 +158,11 @@ def create_image(vpc_stack="vpc"):
     image_id = rsp['ImageId']
     while 1:
         rsp = client.describe_images(ImageIds=[image_id])
-        print ("Image %s state:") % (image_id), rsp['Images'][0]['State'] 
         if rsp['Images'][0]['State']  == 'available':
             print "Image created, delete temp instance"
             break
+        print ("Image %s state:") % (image_id), rsp['Images'][0]['State'] 
+        time.sleep(5)
 
     # delete temporary instance
     delete_stack("TempStack")
@@ -195,15 +206,16 @@ def deploy_vpc(stack_name="vpc"):
         image_id -- {string} The id of a configured image
     """
     # create VPC 
+    print "Deploying VPC and network..."
     template = open("./StackTemplates/vpc.template").read()
     template = (template) % (config["VpcCidr"], 
                             config["PublicCidr"], 
                             config["PrivateCidr"]) 
-    
     stack =  create_stack(stack_name, template)
     desc = describe_stack(stack_name)["outputs"]
 
-    print "creating pre configured image..."
+    # Create AMI of a configured instance in that VPC 
+    print "Creating pre configured image..."
     image_id = create_image(stack_name)
     print ("Image \'%s\' created") % (image_id)
 
@@ -219,20 +231,21 @@ def deploy_vcg(image_id, vpc_stack="vpc", stack_name="vcg"):
     ----------------------
     Outputs:
     vcg_id -- {string} The id of created vcg
+    eip_ip -- {string} The allocated public ip
+    eip_id -- {string} The id of allocated public ip
     """
     psk = uuid.uuid4().hex
 
     # get id informatin from pre-create VPC stack
-    print "Allocating Elastic IP"
     vpc_desc = describe_stack(vpc_stack)["outputs"]
-    print vpc_desc["VpcId"]
 
     # create eip
+    print ("Allocating Elastic IP to %s") % (vpc_desc["VpcId"])
     ec2_client = boto3.client('ec2')
     eip_rsp = ec2_client.allocate_address(Domain='vpc')
     eip_ip = eip_rsp['PublicIp']
     eip_id = eip_rsp['AllocationId']
-    print eip_ip, eip_id
+    print ("ElasticIP: %s, ElasticIpId: %s") % (eip_ip, eip_id)
 
     # Add connection in this machine and start tunnel
     # So that when IPsec is start in the remote site will have responde
@@ -248,19 +261,18 @@ def deploy_vcg(image_id, vpc_stack="vpc", stack_name="vcg"):
                              config['InstanceType'], image_id, 
                              vpc_desc["SecurityGroup"])
     create_stack(stack_name, template)
-
-    # Get vcg id
+    
     vcg_id = describe_stack(stack_name)["outputs"]["VcgId"]
 
-    # Associate public address
-    rsp = ec2_client.associate_address(InstanceId=vcg_id,
-                                        AllocationId=eip_id)
+    # Associate VCG with EIP
+    rsp = ec2_client.associate_address(InstanceId=vcg_id, AllocationId=eip_id)
+
     # Route all traffic in private subnet to new vcg
     rsp = ec2_client.create_route( RouteTableId=vpc_desc["PrivateRouteTableId"],
                                     DestinationCidrBlock='0.0.0.0/0',
                                     InstanceId=vcg_id)
 
-    return vcg_id
+    return vcg_id, eip_ip, eip_id
 
 
 def test():
