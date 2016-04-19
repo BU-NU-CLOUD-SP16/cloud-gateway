@@ -24,14 +24,14 @@ config = yaml.load(open('config.yaml').read())
 stack_info_path = "./others/stacks_info/"
 
 def dump_stack(stack_name, desc):
-    path = os.path.join([stack_info_path, stack_name])
-    if not os.path.isdir(path):
-        os.makedirs(path)
+    path = os.path.join(stack_info_path, stack_name)
+    if not os.path.isdir(stack_info_path):
+        os.makedirs(stack_info_path)
     with open(path, "w") as dump_file:
         dump_file.write(yaml.dump(desc))
 
 def load_stack(stack_name):
-    path = os.path.join([stack_info_path, stack_name])
+    path = os.path.join(stack_info_path, stack_name)
     return yaml.load(open(path, 'r').read())
 
 def get_ubuntu_amiid():
