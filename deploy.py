@@ -166,7 +166,7 @@ def create_image(vpc_stack="vpc"):
         rsp = ec2_client.describe_instance_status(InstanceIds=[instance_id])
         rsp = rsp["InstanceStatuses"][0]
         print rsp
-        if rsp["InstanceState"]["Status"] != "ok" and \
+        if rsp["InstanceStatus"]["Status"] != "ok" and \
             rsp["SystemStatus"]["Status"] != "ok":
             print "Instace Initialized."
             break
@@ -330,7 +330,7 @@ def delete_vcg(stack_name="vcg"):
 
 def test():
     deploy_vpc()
-    deploy_vcg()
+    #deploy_vcg()
 
     # delete_vpc()
     # delete_vcg()
