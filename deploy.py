@@ -136,16 +136,17 @@ def create_image(vpc_stack="vpc"):
 
     
     # createan instance with all libs installed
-    stack =  create_stack("TempStack", template)
-    instance_id = describe_stack("TempStack")["InstanceId"]
+    #istack =  create_stack("TempStack", template)
+    instance_id = describe_stack("TempStack")["outputs"]["InstanceId"]
+
 
     client = boto3.client('ec2')
-    rsp = client.create_image(InstanceId=instance_id,
-                                Name='string',
-                                Description='string')
+    # rsp = client.create_image(InstanceId=instance_id,
+                #                Name='string',
+                 #               Description='string')
 
     # create an image of that instance and wait until it's available
-    image_id = rsp['ImageId']
+    image_id = "ami-83f0efe9" #rsp['ImageId']
     while 1:
         rsp = client.describe_images(ImageIds=[image_id])
         print ("Image %s state:") % (image_id), rsp['Images'][0]['State'] 
@@ -200,11 +201,11 @@ def deploy_vpc(stack_name="vpc"):
                             config["PublicCidr"], 
                             config["PrivateCidr"]) 
     
-    stack =  create_stack(stack_name, template)
+    #stack =  create_stack(stack_name, template)
     desc = describe_stack(stack_name)["outputs"]
 
     print "creating pre configured image..."
-    image_id = create_image(desc["VpcId"])
+    image_id = create_image(stack_name)
     print ("Image \'%s\' created") % (image_id)
 
     return desc["VpcId"], desc["PublicSubnetId"], \
@@ -266,8 +267,8 @@ def deploy_vcg(image_id, vpc_stack="vpc", stack_name="vcg"):
 
 
 def test():
-    _1, _2, _3, _4, image_id = deploy_vpc()
-    deploy_vcg(image_id)
+    #_1, _2, _3, _4, image_id = deploy_vpc()
+    deploy_vcg("ami-83f0efe9 ")
 
 if __name__ == "__main__":
     test()
