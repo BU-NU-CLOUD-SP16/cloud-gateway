@@ -166,7 +166,7 @@ def create_image(vpc_stack="vpc"):
         rsp = ec2_client.describe_instance_status(InstanceIds=[instance_id])
         rsp = rsp["InstanceStatuses"][0]
         print rsp
-        if rsp["InstanceState"]["Name"] != "running" and \
+        if rsp["InstanceState"]["Status"] != "ok" and \
             rsp["SystemStatus"]["Status"] != "ok":
             print "Instace Initialized."
             break
