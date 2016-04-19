@@ -162,22 +162,9 @@
          "Fn::Base64": { "Fn::Join":["", [
             "#!/bin/bash -ex\n",
 
-            "#apt-get update\n",
-            "#apt-get -y install libffi-dev libssl-dev\n",
-            "#apt-get -y install python-setuptools python-pip git\n",
-            "#sudo pip install flask\n",
-            "#easy_install pyopenssl ndg-httpsclient pyasn1\n",
-
-            "#mkdir aws-cfn-bootstrap-latest\n",
-            "#curl https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz | tar xz -C aws-cfn-bootstrap-latest --strip-components 1\n",
-            "#easy_install aws-cfn-bootstrap-latest\n",
-
-            "# Install strongswan after sending success signal\n",
-            "#apt-get -y install strongswan\n",
-
-            "# clone the repo\n",
-            "cd /home/ubuntu/\n",
-            "#git clone https://github.com/BU-NU-CLOUD-SP16/cloud-gateway.git \n",
+            "# get newest code\n",
+            "cd /home/ubuntu/cloud-gateway\n",
+            "git pull \n",
 
             "# Install the files and packages from the metadata\n",
             "/usr/local/bin/cfn-init ",

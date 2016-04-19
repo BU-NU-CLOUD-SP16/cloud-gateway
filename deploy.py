@@ -136,17 +136,16 @@ def create_image(vpc_stack="vpc"):
 
     
     # createan instance with all libs installed
-    #istack =  create_stack("TempStack", template)
+    create_stack("TempStack", template)
     instance_id = describe_stack("TempStack")["outputs"]["InstanceId"]
 
-
     client = boto3.client('ec2')
-    # rsp = client.create_image(InstanceId=instance_id,
-                #                Name='string',
-                 #               Description='string')
+    rsp = client.create_image(InstanceId=instance_id,
+                               Name='string',
+                               Description='string')
 
     # create an image of that instance and wait until it's available
-    image_id = "ami-83f0efe9" #rsp['ImageId']
+    image_id = rsp['ImageId']
     while 1:
         rsp = client.describe_images(ImageIds=[image_id])
         print ("Image %s state:") % (image_id), rsp['Images'][0]['State'] 
@@ -201,7 +200,7 @@ def deploy_vpc(stack_name="vpc"):
                             config["PublicCidr"], 
                             config["PrivateCidr"]) 
     
-    #stack =  create_stack(stack_name, template)
+    stack =  create_stack(stack_name, template)
     desc = describe_stack(stack_name)["outputs"]
 
     print "creating pre configured image..."
@@ -256,19 +255,17 @@ def deploy_vcg(image_id, vpc_stack="vpc", stack_name="vcg"):
     # Associate public address
     rsp = ec2_client.associate_address(InstanceId=vcg_id,
                                         AllocationId=eip_id)
-    print rsp
     # Route all traffic in private subnet to new vcg
     rsp = ec2_client.create_route( RouteTableId=vpc_desc["PrivateRouteTableId"],
                                     DestinationCidrBlock='0.0.0.0/0',
                                     InstanceId=vcg_id)
-    print rsp
 
     return vcg_id
 
 
 def test():
-    #_1, _2, _3, _4, image_id = deploy_vpc()
-    deploy_vcg("ami-83f0efe9 ")
+    _1, _2, _3, _4, image_id = deploy_vpc()
+    deploy_vcg(image)
 
 if __name__ == "__main__":
     test()
