@@ -166,7 +166,7 @@ def create_image(vpc_stack="vpc"):
         rsp = ec2_client.describe_instance_status(InstanceIds=[instance_id])
         rsp = rsp["InstanceStatuses"][0]
         print rsp
-        if rsp["InstanceState"]["Name"] != "running" and 
+        if rsp["InstanceState"]["Name"] != "running" and \
             rsp["SystemStatus"]["Status"] != "ok":
             print "Instace Initialized."
             break
@@ -241,10 +241,10 @@ def deploy_vpc(stack_name="vpc"):
     # Create AMI of a configured instance in that VPC 
     print "Creating pre configured image..."
     image_id = create_image(stack_name)
-    desc["ImageId"] = image_id
     print ("Image \'%s\' created") % (image_id)
 
     # store vpc information into temp file
+    desc["ImageId"] = image_id
     dump_stack(stack_name, desc)
 
     return desc
@@ -258,19 +258,19 @@ def delete_vpc(stack_name="vpc"):
 def deploy_vcg(vpc_stack="vpc", stack_name="vcg"):
     """
     Params:
-    vpc_stack -- {string} The stack name of VPC to where this VCG is added
-    vpc_ip -- {string} The private ip address of VCG
+        vpc_stack -- {string} The stack name of VPC to where this VCG is added
+        vpc_ip -- {string} The private ip address of VCG
     ----------------------
     Outputs:
-    vcg_id -- {string} The id of created vcg
-    eip_ip -- {string} The allocated public ip
-    eip_id -- {string} The id of allocated public ip
+        vcg_id -- {string} The id of created vcg
+        eip_ip -- {string} The allocated public ip
+        eip_id -- {string} The id of allocated public ip
     """
     psk = uuid.uuid4().hex
 
     # get id informatin from pre-create VPC stack
     # vpc_desc = describe_stack(vpc_stack)["outputs"]
-    vpc_desc = load_stack(vpc_stack, desc)
+    vpc_desc = load_stack(vpc_stack)
 
     # create eip
     print ("Allocating Elastic IP to %s") % (vpc_desc["VpcId"])
@@ -282,7 +282,7 @@ def deploy_vcg(vpc_stack="vpc", stack_name="vcg"):
 
     # Add connection in this machine and start tunnel
     # So that when IPsec is start in the remote site will have responde
-    add_connection(config["HqPublicIp"], config["HqPrivateIp"], "0.0.0.0/0",
+    add_connection(config["HqPublicIp"], config["HqPrivateIp"],"0.0.0.0/0",
                     eip_ip, eip_ip, config["VpcCidr"], psk)
     
     # Construct template and create VCG
@@ -305,13 +305,13 @@ def deploy_vcg(vpc_stack="vpc", stack_name="vcg"):
                             DestinationCidrBlock='0.0.0.0/0',
                             InstanceId=vcg_id)
 
-    desc = {"ElasticAddressIp": eip_ip,
-            "ElasticAddressId": eip_id,
+    desc = {"ElasticIp": eip_ip,
+            "ElasticIpId": eip_id,
             "PrivateRouteTableId": vpc_desc["PrivateRouteTableId"],
             "VcgId": vcg_id}
 
     # Store info of VCG related resources into yaml
-    dump_yaml(stack_name, desc)
+    dump_stack(stack_name, desc)
 
     return desc
 
@@ -325,12 +325,15 @@ def delete_vcg(stack_name="vcg"):
     desc = load_stack(stack_name)
     ec2_client.delete_route(RouteTableId=desc["PrivateRouteTableId"],
                             DestinationCidrBlock="0.0.0.0/0")
-    ec2_client.release_address(AllocationId=desc["ElasticAddressId"])
+    ec2_client.release_address(AllocationId=desc["ElasticIpId"])
 
 
 def test():
-    image_id = deploy_vpc()["ImageId"]
+    deploy_vpc()
     deploy_vcg()
+
+    # delete_vpc()
+    # delete_vcg()
 
 if __name__ == "__main__":
     test()
