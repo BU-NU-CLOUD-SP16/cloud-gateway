@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 dnat_cmd = "sudo iptables -t nat %s PREROUTING -d %s -j DNAT --to-destination %s"
 port_fwd_cmd = "sudo iptables -t nat %s PREROUTING -p %s -d %s --dport %s -j DNAT --to-destination %s"
-internet_cmd = "sudo iptables -t nat %s POSTROUTING ! -d %d -j MASQUERADE"
+internet_cmd = "sudo iptables -t nat %s POSTROUTING ! -d %s -j MASQUERADE"
 internet_tag_file = "./internet_conn_on"
 
 internet_status = "OFF"
@@ -91,14 +91,18 @@ def dnat():
         rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
         # if fail
         if rsp.content != "succ": 
-           return rsp.content
+            return rsp.content
 
         # execute rule add locally
+        try:
+            add_dnat(ori_ip, real_ip)
+            add_arp(real_ip)
 
-        # write new rules into database
-        dnats = get_db().cursor().execute("SELECT * FROM dnats")
-        port_fwds = get_db().cursor().execute("SELECT * FROM port_fwds")
-        execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
+            # write new rules into database
+            execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
+        except Exception as e:
+            print str(e)
+            return str(e)
 
         return "success" 
 
@@ -129,10 +133,8 @@ def port_fwd():
             dport = request.form['dport']
             dst = request.form['dst']
             protocol = request.form['protocol']
-            # print request.form
+        
             add_port_fwd(protocol, dport, dst)
-          
-            #  rule into database
             execute_sql('insert into port_fwds values (?, ?, ?)', (dport, dst, protocol))
             return "success"
 
@@ -144,7 +146,8 @@ def port_fwd():
             dport = request.form['dport']
             dst = request.form['dst']
             protocol = request.form['protocol'].strip()
-            #del_port_fwd(proto, dport, dst)
+            
+            del_port_fwd(protocol, dport, dst)
             execute_sql('DELETE FROM port_fwds WHERE dport=? and dst=? and protocol=?', (dport, dst, protocol,))
             return "success"
 
@@ -152,7 +155,7 @@ def port_fwd():
             return str(e)
 
 @app.route("/internet_connection", methods=['POST'])
-def toggle_internet():
+def internet_connection():
     if request.method == 'POST':
         try:
             if request.form['flag'] == "OFF": 
@@ -161,13 +164,14 @@ def toggle_internet():
                 disable_internet()
             return "succ"
         except Exception as e:
+            print str(e)
             return str(e)
 
 ###################
 # HELPER FUNCTION #
 ###################
 def exeute_shell(cmd):
-    subprocess.check_output(cmd, shell = True)
+    return subprocess.check_output(cmd, shell = True)
 
 def add_dnat(ori, new):
     return exeute_shell(dnat_cmd % ("-A", ori, new))
@@ -183,8 +187,8 @@ def add_arp(ip, dev = "eth0"):
     cmd = ("arp -i %s -s %s 11:50:22:44:55:55") % (dev, ip)
     return exeute_shell(cmd)
 
-def del_arp(ip):
-    return exeute_shell("arp -d " + ip)
+def del_arp(ip, dev = "eth0"):
+    return exeute_shell(("arp -i %s -d %s") % (dev, ip))
 
 def add_port_fwd(proto, dport, dst):
     cmd = port_fwd_cmd % ("-A", proto, net_config["HqPrivateIp"], dport, dst)
