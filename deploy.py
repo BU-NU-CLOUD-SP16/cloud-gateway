@@ -203,8 +203,9 @@ def delete_image(image_id):
     """
     try:
         client = boto3.client('ec2')
-        rsp = client.describe_images(ImageIds=[image_id])
-        snapshot_id = rsp['BlockDeviceMappings']['Ebs']['SnapshotId']
+        rsp = client.describe_image_attribute(ImageId=image_id,
+                                              Attribute="blockDeviceMapping")
+        snapshot_id = rsp['BlockDeviceMappings'][0]['Ebs']['SnapshotId']
 
         # deregister image
         client.deregister_image(ImageId=image_id)
@@ -213,6 +214,7 @@ def delete_image(image_id):
         client.delete_snapshot(SnapshotId=snapshot_id)
         return True
     except Exception as e:
+        print str(e)
         return str(e)
 
 
@@ -320,13 +322,18 @@ def deploy_vcg(vpc_stack="vpc", stack_name="vcg"):
 def delete_vcg(stack_name="vcg"):
     # delete instance
     ec2_client = boto3.client("ec2")
-    delete_stack(stack_name)
 
-    # delete elastic ip and private route
+    # disassociate elastic ip, delete elastic ip and private route
     desc = load_stack(stack_name)
+    ec2_client.disassociate_address(AllocationId=desc["ElasticIpId"])
+
     ec2_client.delete_route(RouteTableId=desc["PrivateRouteTableId"],
                             DestinationCidrBlock="0.0.0.0/0")
+
     ec2_client.release_address(AllocationId=desc["ElasticIpId"])
+
+    # delete VCG stack
+    delete_stack(stack_name)
 
 
 def test():
