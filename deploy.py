@@ -203,10 +203,8 @@ def delete_image(image_id):
     """
     try:
         client = boto3.client('ec2')
-        rsp = client.describe_image_attribute(ImageId=image_id,
-                                              Attribute="blockDeviceMapping")
-        snapshot_id = rsp['BlockDeviceMappings'][0]['Ebs']['SnapshotId']
-
+        rsp = client.describe_images(ImageIds=[image_id])
+        snapshot_id = rsp['Images'][0]['BlockDeviceMappings'][0]['Ebs']['SnapshotId']
         # deregister image
         client.deregister_image(ImageId=image_id)
 
@@ -339,8 +337,8 @@ def delete_vcg(stack_name="vcg"):
 def test():
 #    deploy_vpc()
 #    deploy_vcg()
-     delete_vcg()
-     delete_vpc()
+#     delete_vcg()
+#     delete_vpc()
 
 if __name__ == "__main__":
     test()
