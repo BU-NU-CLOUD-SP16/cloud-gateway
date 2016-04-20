@@ -201,19 +201,15 @@ def delete_image(image_id):
     Outputs:
     True if operation success, otherwise return error message
     """
-    try:
-        client = boto3.client('ec2')
-        rsp = client.describe_images(ImageIds=[image_id])
-        snapshot_id = rsp['Images'][0]['BlockDeviceMappings'][0]['Ebs']['SnapshotId']
-        # deregister image
-        client.deregister_image(ImageId=image_id)
+    client = boto3.client('ec2')
+    rsp = client.describe_images(ImageIds=[image_id])
+    snapshot_id = rsp['Images'][0]['BlockDeviceMappings'][0]['Ebs']['SnapshotId']
+    # deregister image
+    client.deregister_image(ImageId=image_id)
 
-        # delete snapshot
-        client.delete_snapshot(SnapshotId=snapshot_id)
-        return True
-    except Exception as e:
-        print str(e)
-        return str(e)
+    # delete snapshot
+    client.delete_snapshot(SnapshotId=snapshot_id)
+    return True
 
 
 def deploy_vpc(stack_name="vpc"):
