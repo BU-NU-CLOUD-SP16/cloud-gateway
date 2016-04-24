@@ -201,15 +201,15 @@ def del_port_fwd(proto, dport, dst):
 def enable_internet():
     global internet_status
     internet_status = "ON"
-    total_subnet = ",".join([net_config["HqCidr"],net_config["VpcCidr"]])
-    cmd = internet_cmd % ('-A', total_subnet)
+    dst = net_config["HqCidr"]
+    cmd = internet_cmd % ('-A', dst)
     return exeute_shell(cmd)
 
 def disable_internet():
     global internet_status
     internet_status = "OFF"
-    total_subnet = ",".join([net_config["HqCidr"],net_config["VpcCidr"]])
-    cmd = internet_cmd % ('-D', total_subnet)
+    dst = net_config["HqCidr"]
+    cmd = internet_cmd % ('-D', dst)
     return exeute_shell(cmd)
 
 if __name__ == "__main__":
