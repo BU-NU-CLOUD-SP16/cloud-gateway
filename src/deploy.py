@@ -19,7 +19,7 @@ conn %s-%s
 """
 secret_template = "%s %s : PSK \\\"%s\\\" \\\n"
 
-config = yaml.load(open('config.yaml').read())
+config = yaml.load(open('../config/config.yaml').read())
 
 stack_info_path = "./others/stacks_info/"
 
