@@ -21,8 +21,12 @@ sudo sysctl -p
 
 # Install aws cli
 echo "Installing AWS CLI and configur default region"
-echo "This step may require you to provide Access Key and Secret Access Key of your account"
+echo "This step may require you to provide Access Key and \
+      Secret Access Key of your account"
 sudo pip install awscli
 aws configure
+
+echo "Configuration done, please do your netowrk configuration \
+       in \'config.yaml\'"
 
 
