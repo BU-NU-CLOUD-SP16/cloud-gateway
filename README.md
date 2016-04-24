@@ -1,23 +1,57 @@
 #Cloud Gateway
 
-###Group Members
-___
-##### Mania Abdi
-##### Rahul Bahal
-##### Qianli Ma
-##### Ayush Singh
+## Group Members
 
-###Description
-***
-Provisioning on-premise compute resources for peak workloads can be cost prohibitive. Therefore, enterprises provision sufficient compute resources in their private cloud for the anticipated average workload. In contrast, the public cloud does not require significant initial capital expenditures, as resources are served on-demand and customers only pay for the resources they consume. Thus, the hybrid cloud model may be employed as a cost-effective method of scaling resources to peak demand. The average-sized workload stays in the private cloud, and peak workload is provisioned in the public cloud.
+* Mania Abdi
+* Rahul Bahal
+* Qianli Ma
+* Ayush Singh
 
-You are the administrator of an OpenStack private cloud, and your goal is to allow your application team to seamlessly scale their applications for peak demand via a burst to the public cloud. A Cloud Gateway (CG) virtual machine runs on an OpenStack (or any) network to expand the local resource via an AWS Virtual Private Cloud (VPC). Machines will utilize the CG to send traffic between the private and public cloud subnets.
+## Description
 
-***
-###Key Features
+This 
 
-1. One Virtual Private Cloud(VPC) is assumed to be already set up on the Private Side.
-2. Public VPC is set up using CloudFormation Template.
-3. With the help of the user interface, the admin can take care of DNAT, enable/disable internet for the public side worker machines and modify port forwarding tables to make sure IP tables on both sides are consistent.
-4. The user interface console is written in Flask(Python) as backend and Sqlite3 database engine.
 
+## Intro&Demo Video
+[![ScreenShot](https://raw.github.com/GabLeRoux/WebMole/master/ressources/WebMole_Youtube_Video.png)](http://youtu.be/vt5fpE0bzSY)
+
+
+## How to use it?
+### 1. Installation
+
+    ```
+    # On the VM you wannan use as VCG of provate cloud
+    # clone this repo
+    git clone https://github.com/BU-NU-CLOUD-SP16/cloud-gateway.git
+    
+    # initialize environment
+    cd cloud-gateway
+    sudo ./bin/initialize.sh
+    ```
+    
+### 2. Configuration
+    You will need to configure you hybird cloud setting in config.yaml under root directory, here's an example configuration
+
+    ```config.yaml
+    KeyPair: "N Viginia" 
+    HqPublicIp : "52.26.103.3" 
+    HqPrivateIp : "10.0.1.121" 
+    HqCidr : "10.0.0.0/16"
+    
+    VpcCidr : "10.1.0.0/16" 
+    PublicCidr : "10.1.0.0/24" 
+    PrivateCidr : "10.1.1.0/24" 
+    
+    VcgIp : "10.1.0.100"
+    VcgServicePort : "6432"
+    InstanceType : "t2.micro"
+    # This should be the ubuntu AMI id in default region
+    ImageId : "ami-fce3c696"
+    IpsecConfigPath : "/home/ubuntu/ipsec/"
+    ```
+
+### 3. Deployment
+
+    ```
+    
+    ```
