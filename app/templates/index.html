@@ -19,12 +19,18 @@
           $ori_ip = $row.find("td:nth-child(1)").children("input").val();
           $real_ip = $row.find("td:nth-child(2)").children("input").val();
           var len = $('#dnats').length;
-          $('#dnats tbody:last').prepend('<tr><td>'+ $ori_ip +'</td><td>'+ $real_ip +'</td><td><button class="btn btn-danger btn-sm dnats-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
-                $.ajax({
-                     type: "POST",
-                     url: "/dnat",
-                     data: {ori_ip:$ori_ip, real_ip:$real_ip}
-                });
+          
+          $.ajax({
+               type: "POST",
+               url: "/dnat",
+               data: {ori_ip:$ori_ip, real_ip:$real_ip},
+               success: function (data){
+                  if(data["desc"] == "succ")
+                    $('#dnats tbody:last').prepend('<tr><td>'+ $ori_ip +'</td><td>'+ $real_ip +'</td><td><button class="btn btn-danger btn-sm dnats-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>');
+                  else
+                    alert(data["reason"]);
+               }
+          });
         });
   
         // Add button for port forwarding
@@ -37,12 +43,19 @@
           $protocol = $("#port-fwd-proto-add-btn-group > button.active").text();
           $protocol == "TCP" ? $btn_state = "btn-warning" : $btn_state = "btn-success";
 
-                  $('#port-fwds tbody:last').prepend('<tr><td>'+ $dport +'</td><td>'+ $dst +'</td><td><button type="button" class="btn btn-sm ' + $btn_state + ' disabled">' + $protocol + '</button></td><td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
-                  $.ajax({
-                    type: "POST",
-                    url: "/port_fwd",
-                    data: {dport:$dport, dst:$dst, protocol: $protocol}
-                  });
+          $('#port-fwds tbody:last').prepend('<tr><td>'+ $dport +'</td><td>'+ $dst +'</td><td><button type="button" class="btn btn-sm ' + $btn_state + ' disabled">' + $protocol + '</button></td><td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>')  
+
+          $.ajax({
+            type: "POST",
+            url: "/port_fwd",
+            data: {dport:$dport, dst:$dst, protocol: $protocol},
+            success: function (data){
+              if(data["desc"] == "succ")
+                $('#port-fwds tbody:last').prepend('<tr><td>'+ $dport +'</td><td>'+ $dst +'</td><td><button type="button" class="btn btn-sm ' + $btn_state + ' disabled">' + $protocol + '</button></td><td><button class="btn btn-danger btn-sm port-fwds-delete"><span class="glyphicon glyphicon-trash"></span></button></td> </tr>');
+              else
+                alert(data["reason"]);
+            }
+          });
         });
 
         // Delete button for dnats
@@ -53,7 +66,7 @@
             $.ajax({
                  type: "DELETE",
                  url: "/dnat",
-                  data: {ori_ip:$ori_ip, real_ip:$real_ip}
+                 data: {ori_ip:$ori_ip, real_ip:$real_ip}
             });  
         });
 
