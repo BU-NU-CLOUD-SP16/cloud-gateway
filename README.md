@@ -30,7 +30,7 @@ sudo ./bin/initialize.sh
 ```
     
 ### 2. Configuration
-You will need to configure you hybird cloud setting in config.yaml under config folder, here's an example configuration
+You will need to configure you hybird cloud setting in ```./config/config.yaml```, here's an example configuration
 
 ```config.yaml
 KeyPair: "N Viginia" 

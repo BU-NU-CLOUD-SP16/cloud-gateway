@@ -1,0 +1,132 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "Sample Heat template that spins up multiple instances and a private network (JSON)",
+
+  "Resources" : {
+    "cg_net_0" : {
+      "Type" : "OS::Neutron::Net",
+      "Properties" : {
+        "name" : "cg-net-0"
+      }
+    },
+
+    "cg_net_0_sub_0" : {
+      "Type" : "OS::Neutron::Subnet",
+      "Properties" : {
+        "name" : "cg-net-0-sub-0",
+        "cidr" : "10.10.10.0/24",
+        "dns_nameservers" : ["8.8.8.8"],
+        "enable_dhcp" : "True",
+        "gateway_ip" : "10.10.10.254",
+        "network_id" : { "Ref" : "cg_net_0" }
+      }
+    },
+
+    "cg_net_1" : {
+      "Type" : "OS::Neutron::Net",
+      "Properties" : {
+        "name" : "cg-net-1"
+      }
+    },
+
+    "cg_net_1_sub_0" : {
+      "Type" : "OS::Neutron::Subnet",
+      "Properties" : {
+        "name" : "cg-net-1-sub-0",
+        "cidr" : "192.168.1.0/24",
+        "dns_nameservers" : ["8.8.8.8"],
+        "enable_dhcp" : "True",
+        "gateway_ip" : "192.168.1.254",
+        "network_id" : { "Ref" : "cg_net_1" }
+      }
+    },
+
+    "cg_router_pub" : {
+      "Type" : "OS::Neutron::Router",
+      "Properties" : {
+        "admin_state_up" : "True",
+        "name" : "cg-router-pub"
+      }
+    },
+
+    "heat_router_gw" : {
+      "Type" : "OS::Neutron::RouterGateway",
+      "Properties" : {
+        "network_id" : "698307e1-ed23-4834-9dd4-0ec0780f8fc5",
+        "router_id" : { "Ref" : "cg_router_pub" }
+      }
+    },
+
+    "heat_router_int" : {
+      "Type" : "OS::Neutron::RouterInterface",
+      "Properties" : {
+        "router_id" : { "Ref" : "cg_router_pub" },
+        "subnet_id" : { "Ref" : "cg_net_0_sub_0" }
+      }
+    },
+
+    "cg_ins0_p0" : {
+      "Type" : "OS::Neutron::Port",
+      "Properties" : {
+        "admin_state_up" : "True",
+        "network_id" : { "Ref" : "cg_net_0" },
+        "allowed_address_pairs": [{"ip_address": "0.0.0.0/0"}],
+        "security_groups" : ["default",  "allow-ssh" ]
+      }
+    },
+
+    "cg_ins0_p1" : {
+      "Type" : "OS::Neutron::Port",
+      "Properties" : {
+        "admin_state_up" : "True",
+        "network_id" : { "Ref" : "cg_net_1" },
+        "allowed_address_pairs": [{"ip_address": "0.0.0.0/0"}],
+        "security_groups" : ["default", "allow-ssh"]
+      }
+    },
+
+    "cg_ins1_p0" : {
+      "Type" : "OS::Neutron::Port",
+      "Properties" : {
+        "admin_state_up" : "True",
+        "network_id" : { "Ref" : "cg_net_1" },
+        "allowed_address_pairs": [{"ip_address": "0.0.0.0/0"}],
+        "security_groups" : ["default", "allow-ssh"]
+      }
+    },
+     
+    "cg_ins_0" : {
+      "Type" : "OS::Nova::Server",
+      "Properties" : {
+        "name" : "cg-ins-0",
+        "image" : "ubuntu-14.04",
+        "flavor": "m1-4cpu",
+        "key_name" : "cgkp",
+        "networks" : [{
+          "port" : { "Ref" : "cg_ins0_p0" }
+        } , {"port" : { "Ref" : "cg_ins0_p1" } }]
+      }
+      
+      
+    },
+
+    "cg_ins_1" : {
+      "Type" : "OS::Nova::Server",
+      "Properties" : {
+        "name" : "cg-ins-1",
+        "image" : "ubuntu-14.04",
+        "flavor": "m1-4cpu",
+        "key_name" : "cgkp",
+        "networks" : [{
+          "port" : { "Ref" : "cg_ins1_p0" }
+        }],
+        "user_data" : {
+       		"str_replace" : {
+       			"template" : 
+       				"#!/bin/bash\n sudo passwd ubuntu\n"
+       		} 
+        }
+      }
+    }
+  }
+}

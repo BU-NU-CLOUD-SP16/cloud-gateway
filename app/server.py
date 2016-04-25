@@ -4,7 +4,7 @@ import os
 import subprocess
 import requests
 import sqlite3
-import yaml
+import yaml, json
 
 app = Flask(__name__)
 
@@ -17,7 +17,7 @@ internet_status = "OFF"
 
 
 # Override default database setting
-net_config = yaml.load(open('config.yaml').read())
+net_config = yaml.load(open('../config/config.yaml').read())
 app.config.update(dict(
     DATABASE = os.path.join(app.root_path, 'database.db'),
     DEBUG = True,
@@ -89,9 +89,11 @@ def dnat():
 
         # send put request to slave vcg
         rsp = requests.post(app.config["SLAVE_URL"] + '/dnat', data = request.form)
-        # if fail
-        if rsp.content != "succ": 
-            return rsp.content
+        rval = json.loads(rsp.content)
+
+        # if fail in slave
+        if rval["desc"] != "succ": 
+            return rsp.contect
 
         # execute rule add locally
         try:
@@ -101,10 +103,9 @@ def dnat():
             # write new rules into database
             execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
         except Exception as e:
-            print str(e)
-            return str(e)
-
-        return "success" 
+            rval["desc"] = "fail"
+            rval["reason"] = str(e)
+        return json.dumps(rval)
 
     elif request.method == 'DELETE':
         ori_ip = request.form['ori_ip']
@@ -113,18 +114,24 @@ def dnat():
 
         # send delete request to slave vcg
         rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', data = params)
-        
-        # if fail
-        if rsp.content != "succ": 
-           return rsp.content
+        rval = json.loads(rsp.contect)
 
-        # execute rule delete locally
-        del_dnat(ori_ip, real_ip)
-        del_arp(real_ip)
+        # if fail in slave
+        if rval["desc"] != "succ": 
+            return rsp.content
 
-        # delete rule into database
-        execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
-        return "success"
+        try:
+            # execute rule delete locally
+            del_dnat(ori_ip, real_ip)
+            del_arp(real_ip)
+
+            # delete rule into database
+            execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
+        except Exception as e:
+            rval["desc"] = "fail"
+            rval["reason"] = str(e)
+        return json.dumps(rval)
+
 
 @app.route("/port_fwd", methods=['GET', 'POST', 'DELETE'])
 def port_fwd():
