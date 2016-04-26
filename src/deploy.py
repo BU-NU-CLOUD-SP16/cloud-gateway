@@ -21,7 +21,7 @@ secret_template = "%s %s : PSK \\\"%s\\\" \\\n"
 
 config = yaml.load(open('../config/config.yaml').read())
 
-stack_info_path = "./others/stacks_info/"
+stack_info_path = "../others/stacks_info/"
 
 def dump_stack(stack_name, desc):
     path = os.path.join(stack_info_path, stack_name)
@@ -65,7 +65,7 @@ def add_connection(left_id,left,left_subnet,
     
     subprocess.call("echo " + new_secret 
                     + " | sudo tee --append /etc/ipsec.secrets",shell=True)
-    subprocess.call("./bin/ipsec_restart",shell=True)
+    subprocess.call("../bin/ipsec_restart",shell=True)
 
 
 def del_connecion(left, right):
@@ -151,7 +151,7 @@ def create_image(vpc_stack="vpc"):
     vpc_desc = describe_stack(vpc_stack)["Outputs"]
 
     # create temporary vcg 
-    template = open("./StackTemplates/image.template").read()
+    template = open("../StackTemplates/image.template").read()
     template = (template) % (config['KeyPair'], vpc_desc["VpcId"], 
                              vpc_desc["PublicSubnetId"],config['VcgIp'],
                              config['InstanceType'], config['ImageId'], 
@@ -228,7 +228,7 @@ def deploy_vpc(stack_name="vpc"):
     """
     # create VPC 
     print "Deploying VPC and network..."
-    template = open("./StackTemplates/vpc.template").read()
+    template = open("../StackTemplates/vpc.template").read()
     template = (template) % (config["VpcCidr"], 
                             config["PublicCidr"], 
                             config["PrivateCidr"]) 
@@ -283,7 +283,7 @@ def deploy_vcg(vpc_stack="vpc", stack_name="vcg"):
                     eip_ip, eip_ip, config["VpcCidr"], psk)
     
     # Construct template and create VCG
-    template = open("./StackTemplates/vcg.template").read()
+    template = open("../StackTemplates/vcg.template").read()
     template = (template) % (config['KeyPair'], vpc_desc["VpcId"], 
                              vpc_desc["PublicSubnetId"], config['VpcCidr'], 
                              config['VcgIp'], eip_ip, eip_id, 
@@ -319,7 +319,7 @@ def delete_vcg(stack_name="vcg"):
 
     # disassociate elastic ip, delete elastic ip and private route
     desc = load_stack(stack_name)
-    ec2_client.disassociate_address(AllocationId=desc["ElasticIpId"])
+    ec2_client.disassociate_address(PublicIp=desc["ElasticIp"])
 
     ec2_client.delete_route(RouteTableId=desc["PrivateRouteTableId"],
                             DestinationCidrBlock="0.0.0.0/0")
@@ -333,8 +333,8 @@ def delete_vcg(stack_name="vcg"):
 def test():
 #    deploy_vpc()
 #    deploy_vcg()
-#     delete_vcg()
-#     delete_vpc()
+    delete_vcg()
+    delete_vpc()
 
 if __name__ == "__main__":
     test()

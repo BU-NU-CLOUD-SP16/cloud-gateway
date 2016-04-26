@@ -152,7 +152,7 @@
         "NetworkInterfaces" : [{
           "GroupSet"                 : [{ "Ref" : "SecurityGroup" }],
           "PrivateIpAddress"         : {"Ref" : "PrivateIP"},
-          "AssociatePublicIpAddress" : "true",
+          "AssociatePublicIpAddress" : "false",
           "DeviceIndex"              : "0",
           "DeleteOnTermination"      : "true",
           "SubnetId"                 : { "Ref" : "PublicSubnet" }
