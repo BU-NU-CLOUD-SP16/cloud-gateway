@@ -25,7 +25,7 @@ PrivateCidr : ""
 VcgIp : ""
 
 # The port number which the web service will be running on in both VCG
-VcgServicePort : "8080"
+VcgServicePort : ""
 
 # The path to store new ipsec connection
-IpsecConfigPath : "/home/ubuntu/ipsec/"
+IpsecConfigPath : ""
