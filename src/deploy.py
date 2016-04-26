@@ -332,9 +332,9 @@ def delete_vcg(stack_name="vcg"):
 
 def test():
 #    deploy_vpc()
-#    deploy_vcg()
-    delete_vcg()
-    delete_vpc()
+    deploy_vcg()
+#    delete_vcg()
+ #   delete_vpc()
 
 if __name__ == "__main__":
     test()

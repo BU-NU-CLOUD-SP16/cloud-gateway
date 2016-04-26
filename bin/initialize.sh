@@ -13,7 +13,7 @@ do echo 0 > $path/accept_redirects;
 echo 0 > $path/send_redirects;
 done
 
-sudo cp ../others/ipsec.conf /etc/ipsec.conf
+sudo cp ./others/ipsec.conf /etc/ipsec.conf
 
 echo net.ipv4.ip_forward = 1 >> /etc/sysctl.conf
 echo net.ipv4.conf.all.accept_redirects = 0 >> /etc/sysctl.conf

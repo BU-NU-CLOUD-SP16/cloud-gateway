@@ -8,7 +8,7 @@ import yaml, json
 
 app = Flask(__name__)
 
-dnat_cmd = "sudo iptables -t nat %s PREROUTING -d %s -j DNAT --to-destination %s"
+dnat_cmd = "sudo iptables -t nat %s PREROUTING -i %s -d %s -j DNAT --to-destination %s"
 port_fwd_cmd = "sudo iptables -t nat %s PREROUTING -p %s -d %s --dport %s -j DNAT --to-destination %s"
 internet_cmd = "sudo iptables -t nat %s POSTROUTING ! -d %s -j MASQUERADE"
 internet_tag_file = "./internet_conn_on"
@@ -98,7 +98,8 @@ def dnat():
         # execute rule add locally
         try:
             add_dnat(ori_ip, real_ip)
-            add_arp(real_ip)
+            add_arp(real_ip, "eth0")
+            add_arp(ori_ip, "eth1")
 
             # write new rules into database
             execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
@@ -124,6 +125,7 @@ def dnat():
             # execute rule delete locally
             del_dnat(ori_ip, real_ip)
             del_arp(real_ip)
+            del_arp(ori_ip)
 
             # delete rule into database
             execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))
@@ -180,11 +182,11 @@ def internet_connection():
 def exeute_shell(cmd):
     return subprocess.check_output(cmd, shell = True)
 
-def add_dnat(ori, new):
-    return exeute_shell(dnat_cmd % ("-A", ori, new))
+def add_dnat(ori, new, dev="eth1"):
+    return exeute_shell(dnat_cmd % ("-A", dev, ori, new))
 
-def del_dnat(ori, new):
-    return exeute_shell(dnat_cmd % ("-D", ori, new))
+def del_dnat(ori, new, dev="eth1"):
+    return exeute_shell(dnat_cmd % ("-D", dev, ori, new))
 
 def add_arp(ip, dev = "eth0"):
     """
