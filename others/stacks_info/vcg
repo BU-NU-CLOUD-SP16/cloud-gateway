@@ -1,2 +1,2 @@
-{ElasticIp: 52.202.83.1, ElasticIpId: eipalloc-ccd05daa, PrivateRouteTableId: rtb-6881e30f,
-  VcgId: i-69fef1f2}
+{ElasticIp: 52.202.110.16, ElasticIpId: eipalloc-decb5eb8, PrivateRouteTableId: rtb-45c8a522,
+  VcgId: i-abe26b2c}

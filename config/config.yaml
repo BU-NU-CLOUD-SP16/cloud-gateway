@@ -1,28 +1,28 @@
 # Name of Existing KeyPair for public cloud VCG
-KeyPair: ""
+KeyPair: "N Viginia"
 
 # The inistial image id for setting up VCG in your aws region
 # e.g. ami-fce3c696 is the ID of ubuntu14.04 in NVirginia
-ImageId : ""
-InstanceType : ""
+ImageId : "ami-fce3c696"
+InstanceType : "t2.micro"
 
 # The public facing Ip address of private cloud VCG
-HqPublicIp : ""
+HqPublicIp : "129.10.3.179"
 
 # The private Ip address of private cloud VCG
-HqPrivateIp : ""
+HqPrivateIp : "10.1.1.5"
 
 # The private subnet CIDR of private cloud
-HqCidr : ""
+HqCidr : "192.168.1.0/24"
 
 # Network config in AWS side, please allocate a totally
 # different subnet CIDR with head quarter subnet CIDR.
-VpcCidr : ""
-PublicCidr : ""
-PrivateCidr : ""
+VpcCidr : "10.0.0.0/16"
+PublicCidr : "10.0.0.0/24"
+PrivateCidr : "10.0.1.0/24"
 
 # Private IP of public cloud VCG
-VcgIp : ""
+VcgIp : "10.0.0.100"
 
 # The port number which the web service will be running on in both VCG
 VcgServicePort : "8080"

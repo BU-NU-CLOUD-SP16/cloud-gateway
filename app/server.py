@@ -100,9 +100,11 @@ def dnat():
             add_dnat(ori_ip, real_ip)
             add_arp(real_ip, "eth0")
             add_arp(ori_ip, "eth1")
-
+            print "haha"
             # write new rules into database
+            
             execute_sql('insert into dnats values (?,?)', (ori_ip, real_ip,))
+            print "321"
         except Exception as e:
             rval["desc"] = "fail"
             rval["reason"] = str(e)
@@ -115,7 +117,7 @@ def dnat():
 
         # send delete request to slave vcg
         rsp = requests.delete(app.config["SLAVE_URL"] + '/dnat', data = params)
-        rval = json.loads(rsp.contect)
+        rval = json.loads(rsp.content)
 
         # if fail in slave
         if rval["desc"] != "succ": 
@@ -125,7 +127,7 @@ def dnat():
             # execute rule delete locally
             del_dnat(ori_ip, real_ip)
             del_arp(real_ip)
-            del_arp(ori_ip)
+            del_arp(ori_ip, "eth1")
 
             # delete rule into database
             execute_sql('DELETE FROM dnats WHERE ori_ip=? and real_ip=?', (ori_ip, real_ip,))

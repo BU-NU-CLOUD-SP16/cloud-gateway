@@ -4,7 +4,7 @@
 echo "Installing cloud gateway project dependencies"
 sudo apt-get update
 sudo apt-get install -y strongswan python-pip 
-sudo pip install pyyaml boto3 requests
+sudo pip install pyyaml boto3 requests flask
 
 # Configure netowrk setting to enable redirects
 echo "Enabling packets redirection"
