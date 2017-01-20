@@ -49,9 +49,3 @@ InstanceType : "t2.micro"
 ImageId : "ami-fce3c696"
 IpsecConfigPath : "/home/ubuntu/ipsec/"
 ```
-
-### 3. Deployment
-
-```
-
-```
